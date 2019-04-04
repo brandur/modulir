@@ -10,7 +10,7 @@ import (
 // concurrency.
 type Pool struct {
 	Errors []error
-	JobsChan chan Job
+	JobsChan chan func() error
 
 	concurrency int
 
@@ -19,7 +19,7 @@ type Pool struct {
 	errorsChan chan error
 
 	errorsFeederDone chan bool
-	jobsChanInternal chan Job
+	jobsChanInternal chan func() error
 	jobsFeederDone chan bool
 	log log.LoggerInterface
 	numJobs int
@@ -39,10 +39,10 @@ func NewPool(log log.LoggerInterface, concurrency int) *Pool {
 func (p *Pool) Run() {
 	p.log.Debugf("Running job pool at concurrency %v", p.concurrency)
 
-	p.JobsChan = make(chan Job, 100)
+	p.JobsChan = make(chan func() error, 100)
 	p.errorsChan = make(chan error)
 	p.errorsFeederDone = make(chan bool)
-	p.jobsChanInternal = make(chan Job, 100)
+	p.jobsChanInternal = make(chan func() error, 100)
 	p.jobsFeederDone = make(chan bool)
 
 	p.numJobs = 0
@@ -102,7 +102,7 @@ func (p *Pool) Wait() {
 // The work loop for any single goroutine.
 func (p *Pool) work() {
 	for job := range p.jobsChanInternal {
-		err := job.Work()
+		err := job()
 		if err != nil {
 			p.errorsChan <- err
 		}

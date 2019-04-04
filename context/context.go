@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/brandur/modulr/log"
-	"github.com/brandur/modulr/parallel"
 )
 
 // Context contains useful state that can be used by a user-provided build
@@ -19,7 +18,7 @@ type Context struct {
 	FileModTimeCache *FileModTimeCache
 
 	// Jobs is a channel over which jobs to be done are transmitted.
-	Jobs chan parallel.Job
+	Jobs chan func() error
 
 	// Log is a logger that can be used to print information.
 	Log log.LoggerInterface

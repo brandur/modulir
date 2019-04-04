@@ -93,10 +93,6 @@ func BuildLoop(config *Config, f func(*context.Context) error) {
 	}
 }
 
-func Job(f func() error) parallel.Job {
-	return &parallel.GenericJob{F: f}
-}
-
 func fillDefaults(config *Config) {
 	if config.Concurrency <= 0 {
 		config.Concurrency = 5
