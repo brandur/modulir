@@ -59,8 +59,10 @@ func NewFileModTimeCache(log log.LoggerInterface) *FileModTimeCache {
 // future checks.
 func (c *FileModTimeCache) hasChanged(path string) bool {
 	stat, err := os.Stat(path)
-	if err != nil && !os.IsNotExist(err) {
-		c.log.Errorf("Error stat'ing file: %v", err)
+	if err != nil {
+	    if !os.IsNotExist(err) {
+			c.log.Errorf("Error stat'ing file: %v", err)
+		}
 		return true
 	}
 

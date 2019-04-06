@@ -1,6 +1,7 @@
 package modulr
 
 import (
+	"os"
 	"time"
 
 	"github.com/brandur/modulr/context"
@@ -38,7 +39,21 @@ type Config struct {
 type Context = context.Context
 
 // BuildLoop is the entrypoint to the program.
+func Build(config *Config, f func(*context.Context) error) {
+	build(config, f, false)
+}
+
 func BuildLoop(config *Config, f func(*context.Context) error) {
+	build(config, f, true)
+}
+
+//
+// Private
+//
+
+func build(config *Config, f func(*context.Context) error, loop bool) {
+	var errors []error
+
 	if config == nil {
 		config = &Config{}
 	}
@@ -48,14 +63,15 @@ func BuildLoop(config *Config, f func(*context.Context) error) {
 	c := &context.Context{
 		FileModTimeCache: context.NewFileModTimeCache(config.Log),
 		Log:              config.Log,
+		SourceDir:        config.SourceDir,
 		TargetDir:        config.TargetDir,
 	}
 
 	pool := parallel.NewPool(config.Log, config.Concurrency)
 
 	for {
-		c.Log.Infof("Start loop")
 		start := time.Now()
+		c.Log.Debugf("Start loop")
 
 		pool.Run()
 		c.Jobs = pool.JobsChan
@@ -70,7 +86,7 @@ func BuildLoop(config *Config, f func(*context.Context) error) {
 	wait:
 		pool.Wait()
 
-		errors := pool.Errors
+		errors = pool.Errors
 		if err != nil {
 			errors = append([]error{err}, errors...)
 		}
@@ -88,8 +104,16 @@ func BuildLoop(config *Config, f func(*context.Context) error) {
 
 		c.Log.Infof("Built site in %s", time.Now().Sub(start))
 
+		if !loop {
+			break
+		}
+
 		// TODO: Change to watch file system changes instead.
 		time.Sleep(60 * time.Second)
+	}
+
+	if errors != nil {
+		os.Exit(1)
 	}
 }
 

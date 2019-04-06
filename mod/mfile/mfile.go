@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/brandur/modulr/context"
 	"github.com/pkg/errors"
@@ -54,4 +55,12 @@ func EnsureDir(c *context.Context, target string) error {
 	}
 
 	return nil
+}
+
+//
+//
+//
+
+func IsHidden(name) string {
+	return strings.HasPrefix(file, ".")
 }
