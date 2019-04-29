@@ -2,6 +2,7 @@ package context
 
 import (
 	"os"
+	"sync"
 	"time"
 
 	"github.com/brandur/modulr/log"
@@ -30,19 +31,20 @@ type Context struct {
 	TargetDir string
 }
 
-// HasChanged returns whether the target path's modified time has changed since
+// IsUnchanged returns whether the target path's modified time has changed since
 // the last time it was checked. It also saves the last modified time for
 // future checks.
 //
 // TODO: It also makes sure the root path is being watched.
-func (c *Context) HasChanged(path string) bool {
-	return c.FileModTimeCache.hasChanged(path)
+func (c *Context) IsUnchanged(path string) bool {
+	return c.FileModTimeCache.isUnchanged(path)
 }
 
 // FileModTimeCache tracks the last modified time of files seen so a
 // determination can be made as to whether they need to be recompiled.
 type FileModTimeCache struct {
 	log log.LoggerInterface
+	mu sync.Mutex
 	pathToModTimeMap map[string]time.Time
 }
 
@@ -54,28 +56,33 @@ func NewFileModTimeCache(log log.LoggerInterface) *FileModTimeCache {
 	}
 }
 
-// hasChanged returns whether the target path's modified time has changed since
+// isUnchanged returns whether the target path's modified time has changed since
 // the last time it was checked. It also saves the last modified time for
 // future checks.
-func (c *FileModTimeCache) hasChanged(path string) bool {
+func (c *FileModTimeCache) isUnchanged(path string) bool {
 	stat, err := os.Stat(path)
 	if err != nil {
 	    if !os.IsNotExist(err) {
 			c.log.Errorf("Error stat'ing file: %v", err)
 		}
-		return true
+		return false
 	}
 
 	modTime := stat.ModTime()
+
+	c.mu.Lock()
 	lastModTime, ok := c.pathToModTimeMap[path]
 	c.pathToModTimeMap[path] = modTime
+	c.mu.Unlock()
 
 	if !ok {
-		return true
+		return false
 	}
 
 	changed := lastModTime.Before(modTime)
-	c.log.Debugf("No changes to source: %s", path)
+	if !changed {
+		c.log.Debugf("No changes to source: %s", path)
+	}
 
-	return changed
+	return !changed
 }
