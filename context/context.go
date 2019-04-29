@@ -64,11 +64,19 @@ func (c *Context) IsUnchanged(path string) bool {
 	return c.fileModTimeCache.isUnchanged(path)
 }
 
+// Forced returns whether change checking is disabled in the current context.
+//
+// Functions using a forced context still return the right value for their
+// unchanged return, but execute all their work.
+func (c *Context) Forced() bool {
+	return c.forced
+}
+
 // ForcedContext returns a copy of the current Context for which change
 // checking is disabled.
 //
-// Functions using a context still return the right value for their unchanged
-// return, but they still execute all their work.
+// Functions using a forced context still return the right value for their
+// unchanged return, but execute all their work.
 func (c *Context) ForcedContext() *Context {
 	forceC := c.clone()
 	forceC.forced = true

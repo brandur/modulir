@@ -26,7 +26,7 @@ func RenderFile(c *context.Context, source, target string) error {
 	if err != nil {
 		return errors.Wrap(err, "Error rendering file")
 	}
-	if unchanged {
+	if unchanged && !c.Forced() {
 		return nil
 	}
 

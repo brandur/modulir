@@ -17,7 +17,8 @@ import (
 //
 
 func CopyFile(c *context.Context, source, target string) error {
-	if c.IsUnchanged(source) {
+	unchanged := c.IsUnchanged(source)
+	if unchanged && !c.Forced() {
 		return nil
 	}
 
@@ -74,22 +75,23 @@ func IsHidden(source string) bool {
 //
 
 func ReadFile(c *context.Context, source string) ([]byte, bool, error) {
-	if c.IsUnchanged(source) {
-		return nil, true, nil
+	unchanged := c.IsUnchanged(source)
+	if unchanged && !c.Forced() {
+		return nil, unchanged, nil
 	}
 
 	in, err := os.Open(source)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Error opening read source")
+		return nil, unchanged, errors.Wrap(err, "Error opening read source")
 	}
 
 	data, err := ioutil.ReadAll(in)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Error reading source")
+		return nil, unchanged, errors.Wrap(err, "Error reading source")
 	}
 
 	c.Log.Debugf("mfile: Read file: %s", source)
-	return data, false, nil
+	return data, unchanged, nil
 }
 
 //

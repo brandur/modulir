@@ -16,28 +16,29 @@ import (
 //
 
 func ParseFileFrontmatter(c *context.Context, source string, data interface{}) ([]byte, bool, error) {
-	if c.IsUnchanged(source) {
-		return nil, true, nil
+	unchanged := c.IsUnchanged(source)
+	if unchanged && !c.Forced() {
+		return nil, unchanged, nil
 	}
 
 	raw, err := ioutil.ReadFile(source)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Error reading file")
+		return nil, unchanged, errors.Wrap(err, "Error reading file")
 	}
 
 	frontmatter, content, err := splitFrontmatter(string(raw))
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Error splitting frontmatter")
+		return nil, unchanged, errors.Wrap(err, "Error splitting frontmatter")
 	}
 
 
 	err = yaml.Unmarshal([]byte(frontmatter), data)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Error unmarshaling YAML frontmatter")
+		return nil, unchanged, errors.Wrap(err, "Error unmarshaling YAML frontmatter")
 	}
 
 	c.Log.Debugf("myaml: Parsed file: %s", source)
-	return []byte(content), false, nil
+	return []byte(content), unchanged, nil
 }
 
 //
