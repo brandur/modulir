@@ -60,12 +60,11 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 
 	fillDefaults(config)
 
-	c := &context.Context{
-		FileModTimeCache: context.NewFileModTimeCache(config.Log),
-		Log:              config.Log,
-		SourceDir:        config.SourceDir,
-		TargetDir:        config.TargetDir,
-	}
+	c := context.NewContext(&context.ContextArgs{
+		Log:       config.Log,
+		SourceDir: config.SourceDir,
+		TargetDir: config.TargetDir,
+	})
 
 	pool := parallel.NewPool(config.Log, config.Concurrency)
 

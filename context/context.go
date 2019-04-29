@@ -15,9 +15,6 @@ type Context struct {
 	// step.
 	Concurrency int
 
-	// FileModTimeCache remembers the last modified times of files.
-	FileModTimeCache *FileModTimeCache
-
 	// Jobs is a channel over which jobs to be done are transmitted.
 	Jobs chan func() error
 
@@ -29,6 +26,33 @@ type Context struct {
 
 	// TargetDir is the directory where the site will be built to.
 	TargetDir string
+
+	// fileModTimeCache remembers the last modified times of files.
+	fileModTimeCache *FileModTimeCache
+
+	// forced indicates whether change checking should be bypassed.
+	forced bool
+}
+
+// ContextArgs are the set of arguments accepted by NewContext.
+type ContextArgs struct {
+	Concurrency int
+	Jobs chan func() error
+	Log log.LoggerInterface
+	SourceDir string
+	TargetDir string
+}
+
+// NewContext initializes and returns a new Context.
+func NewContext(args *ContextArgs) *Context {
+	return &Context{
+		Concurrency: args.Concurrency,
+		Log: args.Log,
+		SourceDir: args.SourceDir,
+		TargetDir: args.TargetDir,
+
+		fileModTimeCache: NewFileModTimeCache(args.Log),
+	}
 }
 
 // IsUnchanged returns whether the target path's modified time has changed since
@@ -37,7 +61,31 @@ type Context struct {
 //
 // TODO: It also makes sure the root path is being watched.
 func (c *Context) IsUnchanged(path string) bool {
-	return c.FileModTimeCache.isUnchanged(path)
+	return c.fileModTimeCache.isUnchanged(path)
+}
+
+// ForcedContext returns a copy of the current Context for which change
+// checking is disabled.
+//
+// Functions using a context still return the right value for their unchanged
+// return, but they still execute all their work.
+func (c *Context) ForcedContext() *Context {
+	forceC := c.clone()
+	forceC.forced = true
+	return forceC
+}
+
+// clone clones the current Context.
+func (c *Context) clone() *Context {
+	return &Context {
+		Concurrency: c.Concurrency,
+		Log: c.Log,
+		SourceDir: c.SourceDir,
+		TargetDir: c.TargetDir,
+
+		fileModTimeCache: c.fileModTimeCache,
+		forced: c.forced,
+	}
 }
 
 // FileModTimeCache tracks the last modified time of files seen so a
