@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/brandur/modulr/log"
+	"github.com/brandur/modulr/parallel"
 )
 
 // Context contains useful state that can be used by a user-provided build
@@ -32,13 +33,16 @@ type Context struct {
 
 	// forced indicates whether change checking should be bypassed.
 	forced bool
+
+	// pool is the job pool used to build the static site.
+	pool *parallel.Pool
 }
 
 // ContextArgs are the set of arguments accepted by NewContext.
 type ContextArgs struct {
 	Concurrency int
-	Jobs chan func() error
 	Log log.LoggerInterface
+	Pool *parallel.Pool
 	SourceDir string
 	TargetDir string
 }
@@ -47,11 +51,13 @@ type ContextArgs struct {
 func NewContext(args *ContextArgs) *Context {
 	return &Context{
 		Concurrency: args.Concurrency,
+		Jobs: args.Pool.JobsChan,
 		Log: args.Log,
 		SourceDir: args.SourceDir,
 		TargetDir: args.TargetDir,
 
 		fileModTimeCache: NewFileModTimeCache(args.Log),
+		pool: args.Pool,
 	}
 }
 
@@ -81,6 +87,11 @@ func (c *Context) ForcedContext() *Context {
 	forceC := c.clone()
 	forceC.forced = true
 	return forceC
+}
+
+// Wait waits on the job pool to execute its current round of jobs.
+func (c *Context) Wait() {
+	c.pool.Wait()
 }
 
 // clone clones the current Context.

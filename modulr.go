@@ -60,13 +60,14 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 
 	fillDefaults(config)
 
+	pool := parallel.NewPool(config.Log, config.Concurrency)
+
 	c := context.NewContext(&context.ContextArgs{
 		Log:       config.Log,
+		Pool:      pool,
 		SourceDir: config.SourceDir,
 		TargetDir: config.TargetDir,
 	})
-
-	pool := parallel.NewPool(config.Log, config.Concurrency)
 
 	for {
 		start := time.Now()
