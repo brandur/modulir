@@ -213,3 +213,16 @@ func (s *Stats) Reset() {
 	s.NumJobsExecuted = 0
 	s.Start = time.Now()
 }
+
+// SetJobSkipped atomically decrements NumJobsExecuted.
+//
+// NumJobsExecuted gets incremented automatically every time a forced context
+// is detected because it appears to modulr that work has been done. However,
+// in many cases a build loop will have to force an operation within a job, but
+// still skip most of the job's work, and in these cases the execution
+// statistics reported will be misleading. SetJobSkipped exposes a way for
+// programs to indicate that despite a forced context most work was skipped,
+// and by extension the build loop will report more accurate numbers.
+func (s *Stats) SetJobSkipped() {
+	atomic.AddInt64(&s.NumJobsExecuted, -1)
+}
