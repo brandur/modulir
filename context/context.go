@@ -90,13 +90,27 @@ func (c *Context) ForcedContext() *Context {
 }
 
 // Wait waits on the job pool to execute its current round of jobs.
-func (c *Context) Wait() {
+//
+// Returns true if the round of jobs all executed successfully, and false
+// otherwise. In the latter case, a work function should return so that the
+// modulr main loop can print the errors that occurred.
+//
+// If all jobs were successful, the worker pool is restarted so that more jobs
+// can be queued. If it wasn't, the jobs channel will be closed, and trying to
+// enqueue a new one will panic.
+func (c *Context) Wait() bool {
 	// Wait for work to finish.
 	c.pool.Wait()
+
+	if c.pool.Errors != nil {
+		return false
+	}
 
 	// Then start the pool again, which also has the side effect of
 	// reinitializing anything that needs to be reinitialized.
 	c.pool.Run()
+
+	return true
 }
 
 // clone clones the current Context.

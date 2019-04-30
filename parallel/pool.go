@@ -23,6 +23,7 @@ type Pool struct {
 	jobsFeederDone chan bool
 	log log.LoggerInterface
 	numJobs int
+	running bool
 	wg          sync.WaitGroup
 }
 
@@ -39,13 +40,14 @@ func NewPool(log log.LoggerInterface, concurrency int) *Pool {
 func (p *Pool) Run() {
 	p.log.Debugf("Running job pool at concurrency %v", p.concurrency)
 
+	p.Errors = nil
 	p.JobsChan = make(chan func() error, 100)
 	p.errorsChan = make(chan error)
 	p.errorsFeederDone = make(chan bool)
 	p.jobsChanInternal = make(chan func() error, 100)
 	p.jobsFeederDone = make(chan bool)
-
 	p.numJobs = 0
+	p.running = true
 
 	for i := 0; i < p.concurrency; i++ {
 		go p.work()
@@ -75,7 +77,20 @@ func (p *Pool) Run() {
 }
 
 // Wait waits until all jobs are finished and stops the pool.
-func (p *Pool) Wait() {
+//
+// Returns true if the round of jobs all executed successfully, and false
+// otherwise. In the latter case, the caller should stop and observe the
+// contents of Errors.
+//
+// If the pool isn't running, it falls through without doing anything so it's
+// safe to call Wait multiple times.
+func (p *Pool) Wait() bool {
+	if !p.running {
+		return true
+	}
+
+	p.running = false
+
 	// First signal over the jobs chan that all work has been enqueued).
 	close(p.JobsChan)
 
@@ -97,6 +112,11 @@ func (p *Pool) Wait() {
 	// Now wait for the error feeder to be finished so that we know all errors
 	// have been pushed to Errors.
 	<- p.errorsFeederDone
+
+	if p.Errors != nil {
+		return false
+	}
+	return true
 }
 
 // The work loop for any single goroutine.
