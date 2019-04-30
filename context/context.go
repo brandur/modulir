@@ -153,7 +153,7 @@ func (c *FileModTimeCache) isUnchanged(path string) bool {
 
 	changed := lastModTime.Before(modTime)
 	if !changed {
-		c.log.Debugf("No changes to source: %s", path)
+		c.log.Debugf("context: No changes to source: %s", path)
 	}
 
 	return !changed
