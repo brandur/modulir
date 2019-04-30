@@ -41,23 +41,23 @@ type Context struct {
 // ContextArgs are the set of arguments accepted by NewContext.
 type ContextArgs struct {
 	Concurrency int
-	Log log.LoggerInterface
-	Pool *parallel.Pool
-	SourceDir string
-	TargetDir string
+	Log         log.LoggerInterface
+	Pool        *parallel.Pool
+	SourceDir   string
+	TargetDir   string
 }
 
 // NewContext initializes and returns a new Context.
 func NewContext(args *ContextArgs) *Context {
 	return &Context{
 		Concurrency: args.Concurrency,
-		Jobs: args.Pool.JobsChan,
-		Log: args.Log,
-		SourceDir: args.SourceDir,
-		TargetDir: args.TargetDir,
+		Jobs:        args.Pool.JobsChan,
+		Log:         args.Log,
+		SourceDir:   args.SourceDir,
+		TargetDir:   args.TargetDir,
 
 		fileModTimeCache: NewFileModTimeCache(args.Log),
-		pool: args.Pool,
+		pool:             args.Pool,
 	}
 }
 
@@ -91,34 +91,39 @@ func (c *Context) ForcedContext() *Context {
 
 // Wait waits on the job pool to execute its current round of jobs.
 func (c *Context) Wait() {
+	// Wait for work to finish.
 	c.pool.Wait()
+
+	// Then start the pool again, which also has the side effect of
+	// reinitializing anything that needs to be reinitialized.
+	c.pool.Run()
 }
 
 // clone clones the current Context.
 func (c *Context) clone() *Context {
-	return &Context {
+	return &Context{
 		Concurrency: c.Concurrency,
-		Log: c.Log,
-		SourceDir: c.SourceDir,
-		TargetDir: c.TargetDir,
+		Log:         c.Log,
+		SourceDir:   c.SourceDir,
+		TargetDir:   c.TargetDir,
 
 		fileModTimeCache: c.fileModTimeCache,
-		forced: c.forced,
+		forced:           c.forced,
 	}
 }
 
 // FileModTimeCache tracks the last modified time of files seen so a
 // determination can be made as to whether they need to be recompiled.
 type FileModTimeCache struct {
-	log log.LoggerInterface
-	mu sync.Mutex
+	log              log.LoggerInterface
+	mu               sync.Mutex
 	pathToModTimeMap map[string]time.Time
 }
 
 // NewFileModTimeCache returns a new FileModTimeCache.
 func NewFileModTimeCache(log log.LoggerInterface) *FileModTimeCache {
 	return &FileModTimeCache{
-		log: log,
+		log:              log,
 		pathToModTimeMap: make(map[string]time.Time),
 	}
 }
@@ -129,7 +134,7 @@ func NewFileModTimeCache(log log.LoggerInterface) *FileModTimeCache {
 func (c *FileModTimeCache) isUnchanged(path string) bool {
 	stat, err := os.Stat(path)
 	if err != nil {
-	    if !os.IsNotExist(err) {
+		if !os.IsNotExist(err) {
 			c.log.Errorf("Error stat'ing file: %v", err)
 		}
 		return false
