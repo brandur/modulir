@@ -9,17 +9,9 @@ import (
 	"gopkg.in/russross/blackfriday.v2"
 )
 
-//
-// Render
-//
-
 func Render(c *context.Context, data []byte) []byte {
 	return blackfriday.Run(data)
 }
-
-//
-// RenderFile
-//
 
 func RenderFile(c *context.Context, source, target string) error {
 	inData, unchanged, err := mfile.ReadFile(c, source)
@@ -37,6 +29,7 @@ func RenderFile(c *context.Context, source, target string) error {
 		return errors.Wrap(err, "Error writing file")
 	}
 
+	c.Log.Debugf("mmarkdown: Rendered '%s' to '%s'", source, target)
 	return nil
 }
 
