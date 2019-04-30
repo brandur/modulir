@@ -105,7 +105,7 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 			}
 		}
 
-		c.Log.Infof("Built site in %s (%v / %v job(s) ran)",
+		c.Log.Infof("Built site in %s (%v / %v job(s) did work)",
 			time.Now().Sub(c.Stats.Start), c.Stats.NumJobsExecuted, c.Stats.NumJobs)
 
 		if !loop {
