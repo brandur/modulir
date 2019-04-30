@@ -38,11 +38,14 @@ type Config struct {
 // function.
 type Context = context.Context
 
-// BuildLoop is the entrypoint to the program.
+// Build is one of the main entry points to the program. Call this to build
+// only one time.
 func Build(config *Config, f func(*context.Context) error) {
 	build(config, f, false)
 }
 
+// BuildLoop is one of the main entry points to the program. Call this to build
+// in a perpetual loop.
 func BuildLoop(config *Config, f func(*context.Context) error) {
 	build(config, f, true)
 }
@@ -62,7 +65,7 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 
 	pool := parallel.NewPool(config.Log, config.Concurrency)
 
-	c := context.NewContext(&context.ContextArgs{
+	c := context.NewContext(&context.Args{
 		Log:       config.Log,
 		Pool:      pool,
 		SourceDir: config.SourceDir,
@@ -70,8 +73,8 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 	})
 
 	for {
-		start := time.Now()
 		c.Log.Debugf("Start loop")
+		c.Stats.Reset()
 
 		pool.Run()
 		c.Jobs = pool.JobsChan
@@ -102,7 +105,8 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 			}
 		}
 
-		c.Log.Infof("Built site in %s", time.Now().Sub(start))
+		c.Log.Infof("Built site in %s (%v / %v job(s) ran)",
+			time.Now().Sub(c.Stats.Start), c.Stats.NumJobsExecuted, c.Stats.NumJobs)
 
 		if !loop {
 			break

@@ -12,6 +12,13 @@ type Pool struct {
 	Errors []error
 	JobsChan chan func() error
 
+	// NumJobs is the number of jobs that went through a work iteration of the
+	// pool.
+	//
+	// This number is not accurate until Wait has finished fully. It's reset
+	// when Run is called.
+	NumJobs int
+
 	concurrency int
 
 	// Send errors through a channel to make appending to `errors` Goroutine
@@ -22,7 +29,6 @@ type Pool struct {
 	jobsChanInternal chan func() error
 	jobsFeederDone chan bool
 	log log.LoggerInterface
-	numJobs int
 	running bool
 	wg          sync.WaitGroup
 }
@@ -42,11 +48,11 @@ func (p *Pool) Run() {
 
 	p.Errors = nil
 	p.JobsChan = make(chan func() error, 100)
+	p.NumJobs = 0
 	p.errorsChan = make(chan error)
 	p.errorsFeederDone = make(chan bool)
 	p.jobsChanInternal = make(chan func() error, 100)
 	p.jobsFeederDone = make(chan bool)
-	p.numJobs = 0
 	p.running = true
 
 	for i := 0; i < p.concurrency; i++ {
@@ -66,8 +72,8 @@ func (p *Pool) Run() {
 	// Job feeder
 	go func() {
 		for job := range p.JobsChan {
+			p.NumJobs++
 			p.jobsChanInternal <- job
-			p.numJobs++
 			p.wg.Add(1)
 		}
 
@@ -98,7 +104,7 @@ func (p *Pool) Wait() bool {
 	// been enqueued in jobsChanInternal.
 	<- p.jobsFeederDone
 
-	p.log.Debugf("Waiting for %v job(s) to be done", p.numJobs)
+	p.log.Debugf("pool: Waiting for %v job(s) to be done", p.NumJobs)
 
 	// Now wait for all those jobs to be done.
 	p.wg.Wait()

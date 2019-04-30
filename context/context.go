@@ -9,6 +9,15 @@ import (
 	"github.com/brandur/modulr/parallel"
 )
 
+// Args are the set of arguments accepted by NewContext.
+type Args struct {
+	Concurrency int
+	Log         log.LoggerInterface
+	Pool        *parallel.Pool
+	SourceDir   string
+	TargetDir   string
+}
+
 // Context contains useful state that can be used by a user-provided build
 // function.
 type Context struct {
@@ -25,6 +34,12 @@ type Context struct {
 	// SourceDir is the directory containing source files.
 	SourceDir string
 
+	// Stats tracks various statistics about the build process.
+	//
+	// Statistics are reset between build loops, but are cumulative between
+	// build phases within a loop (i.e. calls to Wait).
+	Stats *Stats
+
 	// TargetDir is the directory where the site will be built to.
 	TargetDir string
 
@@ -38,22 +53,14 @@ type Context struct {
 	pool *parallel.Pool
 }
 
-// ContextArgs are the set of arguments accepted by NewContext.
-type ContextArgs struct {
-	Concurrency int
-	Log         log.LoggerInterface
-	Pool        *parallel.Pool
-	SourceDir   string
-	TargetDir   string
-}
-
 // NewContext initializes and returns a new Context.
-func NewContext(args *ContextArgs) *Context {
+func NewContext(args *Args) *Context {
 	return &Context{
 		Concurrency: args.Concurrency,
 		Jobs:        args.Pool.JobsChan,
 		Log:         args.Log,
 		SourceDir:   args.SourceDir,
+		Stats:       &Stats{},
 		TargetDir:   args.TargetDir,
 
 		fileModTimeCache: NewFileModTimeCache(args.Log),
@@ -67,13 +74,21 @@ func NewContext(args *ContextArgs) *Context {
 //
 // TODO: It also makes sure the root path is being watched.
 func (c *Context) IsUnchanged(path string) bool {
-	return c.fileModTimeCache.isUnchanged(path)
+	unchanged := c.fileModTimeCache.isUnchanged(path)
+
+	if !unchanged || c.Forced() {
+		c.Stats.NumJobsExecuted++
+	}
+
+	return unchanged
 }
 
 // Forced returns whether change checking is disabled in the current context.
 //
 // Functions using a forced context still return the right value for their
 // unchanged return, but execute all their work.
+//
+// TODO: Rename to IsForced to match IsUnchanged.
 func (c *Context) Forced() bool {
 	return c.forced
 }
@@ -102,6 +117,8 @@ func (c *Context) Wait() bool {
 	// Wait for work to finish.
 	c.pool.Wait()
 
+	c.Stats.NumJobs += c.pool.NumJobs
+
 	if c.pool.Errors != nil {
 		return false
 	}
@@ -119,6 +136,7 @@ func (c *Context) clone() *Context {
 		Concurrency: c.Concurrency,
 		Log:         c.Log,
 		SourceDir:   c.SourceDir,
+		Stats:       c.Stats,
 		TargetDir:   c.TargetDir,
 
 		fileModTimeCache: c.fileModTimeCache,
@@ -171,4 +189,25 @@ func (c *FileModTimeCache) isUnchanged(path string) bool {
 	}
 
 	return !changed
+}
+
+// Stats tracks various statistics about the build process.
+type Stats struct {
+	// NumJobs is the total number of jobs generated for the build loop.
+	NumJobs int
+
+	// NumJobsExecuted is the number of jobs that did some kind of heavier
+	// lifting during the build loop. i.e. Those that either (1) detected a
+	// changed source and rand normally, or (2) were forced to run with a
+	// forced context.
+	NumJobsExecuted int
+
+	// Start is the start time of the build loop.
+	Start time.Time
+}
+
+// Reset resets statistics.
+func (s *Stats) Reset() {
+	s.NumJobs = 0
+	s.Start = time.Now()
 }
