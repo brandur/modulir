@@ -3,6 +3,7 @@ package context
 import (
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/brandur/modulr/log"
@@ -77,7 +78,7 @@ func (c *Context) IsUnchanged(path string) bool {
 	unchanged := c.fileModTimeCache.isUnchanged(path)
 
 	if !unchanged || c.Forced() {
-		c.Stats.NumJobsExecuted++
+		atomic.AddInt64(&c.Stats.NumJobsExecuted, 1)
 	}
 
 	return unchanged
@@ -117,7 +118,7 @@ func (c *Context) Wait() bool {
 	// Wait for work to finish.
 	c.pool.Wait()
 
-	c.Stats.NumJobs += c.pool.NumJobs
+	c.Stats.NumJobs += int64(c.pool.NumJobs)
 
 	if c.pool.Errors != nil {
 		return false
@@ -194,13 +195,13 @@ func (c *FileModTimeCache) isUnchanged(path string) bool {
 // Stats tracks various statistics about the build process.
 type Stats struct {
 	// NumJobs is the total number of jobs generated for the build loop.
-	NumJobs int
+	NumJobs int64
 
 	// NumJobsExecuted is the number of jobs that did some kind of heavier
 	// lifting during the build loop. i.e. Those that either (1) detected a
 	// changed source and rand normally, or (2) were forced to run with a
 	// forced context.
-	NumJobsExecuted int
+	NumJobsExecuted int64
 
 	// Start is the start time of the build loop.
 	Start time.Time
