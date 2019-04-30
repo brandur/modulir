@@ -209,5 +209,6 @@ type Stats struct {
 // Reset resets statistics.
 func (s *Stats) Reset() {
 	s.NumJobs = 0
+	s.NumJobsExecuted = 0
 	s.Start = time.Now()
 }
