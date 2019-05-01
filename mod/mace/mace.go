@@ -32,7 +32,7 @@ func Load(c *context.Context, basePath, innerPath string, opts *ace.Options) (*t
 		opts.DynamicReload = true
 	}
 
-	c.Log.Debugf("mace: Loaded template: layout '%s' view '%s'",
+	c.Log.Debugf("mace: Loaded template layout '%s' view '%s'",
 		basePath, innerPath)
 
 	// See the comment above for some context, but since Ace caches templates
@@ -75,5 +75,7 @@ func Render(c *context.Context, basePath, innerPath, target string,
 		return errors.Wrap(err, "Error rendering template")
 	}
 
+	c.Log.Debugf("mace: Rendered view '%s' to '%s'",
+		innerPath, target)
 	return nil
 }
