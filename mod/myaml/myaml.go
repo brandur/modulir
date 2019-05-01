@@ -14,46 +14,46 @@ import (
 func ParseFile(c *context.Context, source string, data interface{}) (bool, error) {
 	changed := c.Changed(source)
 	if !changed && !c.Forced() {
-		return false, nil
+		return changed, nil
 	}
 
 	raw, err := ioutil.ReadFile(source)
 	if err != nil {
-		return true, errors.Wrap(err, "Error reading file")
+		return changed, errors.Wrap(err, "Error reading file")
 	}
 
 	err = yaml.Unmarshal(raw, data)
 	if err != nil {
-		return true, errors.Wrap(err, "Error unmarshaling YAML")
+		return changed, errors.Wrap(err, "Error unmarshaling YAML")
 	}
 
 	c.Log.Debugf("myaml: Parsed file: %s", source)
-	return true, nil
+	return changed, nil
 }
 
 func ParseFileFrontmatter(c *context.Context, source string, data interface{}) ([]byte, bool, error) {
 	changed := c.Changed(source)
 	if !changed && !c.Forced() {
-		return nil, false, nil
+		return nil, changed, nil
 	}
 
 	raw, err := ioutil.ReadFile(source)
 	if err != nil {
-		return nil, true, errors.Wrap(err, "Error reading file")
+		return nil, changed, errors.Wrap(err, "Error reading file")
 	}
 
 	frontmatter, content, err := splitFrontmatter(string(raw))
 	if err != nil {
-		return nil, true, errors.Wrap(err, "Error splitting frontmatter")
+		return nil, changed, errors.Wrap(err, "Error splitting frontmatter")
 	}
 
 	err = yaml.Unmarshal([]byte(frontmatter), data)
 	if err != nil {
-		return nil, true, errors.Wrap(err, "Error unmarshaling YAML frontmatter")
+		return nil, changed, errors.Wrap(err, "Error unmarshaling YAML frontmatter")
 	}
 
 	c.Log.Debugf("myaml: Parsed file frontmatter: %s", source)
-	return []byte(content), true, nil
+	return []byte(content), changed, nil
 }
 
 //

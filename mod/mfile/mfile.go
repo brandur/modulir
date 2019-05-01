@@ -19,28 +19,28 @@ import (
 func CopyFile(c *context.Context, source, target string) (bool, error) {
 	changed := c.Changed(source)
 	if !changed && !c.Forced() {
-		return false, nil
+		return changed, nil
 	}
 
 	in, err := os.Open(source)
 	if err != nil {
-		return true, errors.Wrap(err, "Error opening copy source")
+		return changed, errors.Wrap(err, "Error opening copy source")
 	}
 	defer in.Close()
 
 	out, err := os.Create(target)
 	if err != nil {
-		return true, errors.Wrap(err, "Error creating copy target")
+		return changed, errors.Wrap(err, "Error creating copy target")
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, in)
 	if err != nil {
-		return true, errors.Wrap(err, "Error copying data")
+		return changed, errors.Wrap(err, "Error copying data")
 	}
 
 	c.Log.Debugf("mfile: Copied '%s' to '%s'", source, target)
-	return true, nil
+	return changed, nil
 }
 
 func CopyFileToDir(c *context.Context, source, targetDir string) (bool, error) {
@@ -89,21 +89,21 @@ func MustAbs(path string) string {
 func ReadFile(c *context.Context, source string) ([]byte, bool, error) {
 	changed := c.Changed(source)
 	if !changed && !c.Forced() {
-		return nil, false, nil
+		return nil, changed, nil
 	}
 
 	in, err := os.Open(source)
 	if err != nil {
-		return nil, true, errors.Wrap(err, "Error opening read source")
+		return nil, changed, errors.Wrap(err, "Error opening read source")
 	}
 
 	data, err := ioutil.ReadAll(in)
 	if err != nil {
-		return nil, true, errors.Wrap(err, "Error reading source")
+		return nil, changed, errors.Wrap(err, "Error reading source")
 	}
 
 	c.Log.Debugf("mfile: Read file: %s", source)
-	return data, true, nil
+	return data, changed, nil
 }
 
 //

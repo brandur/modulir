@@ -14,22 +14,22 @@ func Render(c *context.Context, data []byte) []byte {
 }
 
 func RenderFile(c *context.Context, source, target string) (bool, error) {
-	inData, executed, err := mfile.ReadFile(c, source)
+	inData, changed, err := mfile.ReadFile(c, source)
 	if err != nil {
-		return executed, errors.Wrap(err, "Error rendering file")
+		return changed, errors.Wrap(err, "Error rendering file")
 	}
-	if !executed && !c.Forced() {
-		return false, nil
+	if !changed && !c.Forced() {
+		return changed, nil
 	}
 
 	outData := Render(c, inData)
 
 	err = ioutil.WriteFile(target, outData, 0644)
 	if err != nil {
-		return true, errors.Wrap(err, "Error writing file")
+		return changed, errors.Wrap(err, "Error writing file")
 	}
 
 	c.Log.Debugf("mmarkdown: Rendered '%s' to '%s'", source, target)
-	return true, nil
+	return changed, nil
 }
 

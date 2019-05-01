@@ -40,7 +40,7 @@ func Load(c *context.Context, basePath, innerPath string, opts *ace.Options) (*t
 	// didn't set DynamicReload.
 	template, err := ace.Load(basePath, innerPath, opts)
 
-	return template, changedBasePath || changedInnerPath || c.Forced(), err
+	return template, changedBasePath || changedInnerPath, err
 }
 
 // Render is a shortcut for loading an Ace template and rendering it to a
@@ -52,18 +52,18 @@ func Load(c *context.Context, basePath, innerPath string, opts *ace.Options) (*t
 func Render(c *context.Context, basePath, innerPath, target string,
 	opts *ace.Options, locals map[string]interface{}) (bool, error) {
 
-	template, executed, err := Load(c, basePath, innerPath, opts)
+	template, changed, err := Load(c, basePath, innerPath, opts)
 	if err != nil {
-		return executed, errors.Wrap(err, "Error loading template")
+		return changed, errors.Wrap(err, "Error loading template")
 	}
 
-	if !executed && !c.Forced() {
+	if !changed && !c.Forced() {
 		return false, nil
 	}
 
 	file, err := os.Create(target)
 	if err != nil {
-		return true, errors.Wrap(err, "Error creating target file")
+		return changed, errors.Wrap(err, "Error creating target file")
 	}
 	defer file.Close()
 
@@ -72,10 +72,10 @@ func Render(c *context.Context, basePath, innerPath, target string,
 
 	err = template.Execute(writer, locals)
 	if err != nil {
-		return true, errors.Wrap(err, "Error rendering template")
+		return changed, errors.Wrap(err, "Error rendering template")
 	}
 
 	c.Log.Debugf("mace: Rendered view '%s' to '%s'",
 		innerPath, target)
-	return true, nil
+	return changed, nil
 }
