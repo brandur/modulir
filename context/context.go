@@ -122,6 +122,9 @@ func (c *Context) Wait() bool {
 	// reinitializing anything that needs to be reinitialized.
 	c.pool.Run()
 
+	// This channel is reinitialized, so make sure to pull in the new one.
+	c.Jobs = c.pool.JobsChan
+
 	return true
 }
 
