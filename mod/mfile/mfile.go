@@ -71,6 +71,16 @@ func IsMeta(source string) bool {
 	return strings.HasPrefix(file, "_")
 }
 
+// MustAbs is a shortcut variant of filepath.Abs which panics instead of
+// returning an error.
+func MustAbs(path string) string {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		panic(err)
+	}
+	return absPath
+}
+
 //
 // ReadFile
 //
