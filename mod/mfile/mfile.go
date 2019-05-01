@@ -61,13 +61,14 @@ func EnsureDir(c *context.Context, target string) error {
 	return nil
 }
 
-//
-// IsHidden
-//
-
 func IsHidden(source string) bool {
 	file := filepath.Base(source)
 	return strings.HasPrefix(file, ".")
+}
+
+func IsMeta(source string) bool {
+	file := filepath.Base(source)
+	return strings.HasPrefix(file, "_")
 }
 
 //
@@ -112,7 +113,7 @@ func ReadDir(c *context.Context, source string) ([]string, error) {
 	var files []string
 
 	for _, info := range infos {
-		if IsHidden(info.Name()) {
+		if IsHidden(info.Name()) || IsMeta(info.Name()) {
 			continue
 		}
 
