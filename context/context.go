@@ -68,13 +68,13 @@ func NewContext(args *Args) *Context {
 	}
 }
 
-// IsUnchanged returns whether the target path's modified time has changed since
+// Changed returns whether the target path's modified time has changed since
 // the last time it was checked. It also saves the last modified time for
 // future checks.
 //
 // TODO: It also makes sure the root path is being watched.
-func (c *Context) IsUnchanged(path string) bool {
-	return c.fileModTimeCache.isUnchanged(path)
+func (c *Context) Changed(path string) bool {
+	return c.fileModTimeCache.changed(path)
 }
 
 // Forced returns whether change checking is disabled in the current context.
@@ -155,16 +155,16 @@ func NewFileModTimeCache(log log.LoggerInterface) *FileModTimeCache {
 	}
 }
 
-// isUnchanged returns whether the target path's modified time has changed since
+// changed returns whether the target path's modified time has changed since
 // the last time it was checked. It also saves the last modified time for
 // future checks.
-func (c *FileModTimeCache) isUnchanged(path string) bool {
+func (c *FileModTimeCache) changed(path string) bool {
 	stat, err := os.Stat(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			c.log.Errorf("Error stat'ing file: %v", err)
 		}
-		return false
+		return true
 	}
 
 	modTime := stat.ModTime()
@@ -175,7 +175,7 @@ func (c *FileModTimeCache) isUnchanged(path string) bool {
 	c.mu.Unlock()
 
 	if !ok {
-		return false
+		return true
 	}
 
 	changed := lastModTime.Before(modTime)
@@ -183,7 +183,7 @@ func (c *FileModTimeCache) isUnchanged(path string) bool {
 		c.log.Debugf("context: No changes to source: %s", path)
 	}
 
-	return !changed
+	return changed
 }
 
 // Stats tracks various statistics about the build process.

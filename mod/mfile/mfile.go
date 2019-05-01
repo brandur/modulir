@@ -17,8 +17,8 @@ import (
 //
 
 func CopyFile(c *context.Context, source, target string) (bool, error) {
-	unchanged := c.IsUnchanged(source)
-	if unchanged && !c.Forced() {
+	changed := c.Changed(source)
+	if !changed && !c.Forced() {
 		return false, nil
 	}
 
@@ -51,6 +51,7 @@ func CopyFileToDir(c *context.Context, source, targetDir string) (bool, error) {
 // EnsureDir
 //
 
+// TODO: Should also return a bool for executed.
 func EnsureDir(c *context.Context, target string) error {
 	err := os.MkdirAll(target, 0755)
 	if err != nil {
@@ -86,23 +87,23 @@ func MustAbs(path string) string {
 //
 
 func ReadFile(c *context.Context, source string) ([]byte, bool, error) {
-	unchanged := c.IsUnchanged(source)
-	if unchanged && !c.Forced() {
-		return nil, unchanged, nil
+	changed := c.Changed(source)
+	if !changed && !c.Forced() {
+		return nil, false, nil
 	}
 
 	in, err := os.Open(source)
 	if err != nil {
-		return nil, unchanged, errors.Wrap(err, "Error opening read source")
+		return nil, true, errors.Wrap(err, "Error opening read source")
 	}
 
 	data, err := ioutil.ReadAll(in)
 	if err != nil {
-		return nil, unchanged, errors.Wrap(err, "Error reading source")
+		return nil, true, errors.Wrap(err, "Error reading source")
 	}
 
 	c.Log.Debugf("mfile: Read file: %s", source)
-	return data, unchanged, nil
+	return data, true, nil
 }
 
 //

@@ -20,15 +20,15 @@ func Load(c *context.Context, basePath, innerPath string, opts *ace.Options) (*t
 
 	// TODO: Check existence of files.
 
-	unchangedBasePath := c.IsUnchanged(aceBasePath)
-	unchangedInnerPath := c.IsUnchanged(aceInnerPath)
+	changedBasePath := c.Changed(aceBasePath)
+	changedInnerPath := c.Changed(aceInnerPath)
 
 	// By default Ace will use a built-in caching mechanism and only load any
 	// given template one time.
 	//
 	// If we detect that the source template or view files have changed then
 	// set the special DynamicReload option to force the template to reload.
-	if !unchangedBasePath || !unchangedInnerPath || c.Forced() {
+	if changedBasePath || changedInnerPath || c.Forced() {
 		opts.DynamicReload = true
 	}
 
@@ -40,7 +40,7 @@ func Load(c *context.Context, basePath, innerPath string, opts *ace.Options) (*t
 	// didn't set DynamicReload.
 	template, err := ace.Load(basePath, innerPath, opts)
 
-	return template, unchangedBasePath && unchangedInnerPath, err
+	return template, changedBasePath || changedInnerPath || c.Forced(), err
 }
 
 // Render is a shortcut for loading an Ace template and rendering it to a
@@ -50,20 +50,20 @@ func Load(c *context.Context, basePath, innerPath string, opts *ace.Options) (*t
 // the sources are unchanged, so make sure to use a forced context in case a
 // change is made to them.
 func Render(c *context.Context, basePath, innerPath, target string,
-		opts *ace.Options, locals map[string]interface{}) (bool, error) {
+	opts *ace.Options, locals map[string]interface{}) (bool, error) {
 
-	template, unchanged, err := Load(c, basePath, innerPath, opts)
+	template, executed, err := Load(c, basePath, innerPath, opts)
 	if err != nil {
-		return unchanged, errors.Wrap(err, "Error loading template")
+		return executed, errors.Wrap(err, "Error loading template")
 	}
 
-	if unchanged && !c.Forced() {
-		return true, nil
+	if !executed && !c.Forced() {
+		return false, nil
 	}
 
 	file, err := os.Create(target)
 	if err != nil {
-		return false, errors.Wrap(err, "Error creating target file")
+		return true, errors.Wrap(err, "Error creating target file")
 	}
 	defer file.Close()
 
@@ -72,10 +72,10 @@ func Render(c *context.Context, basePath, innerPath, target string,
 
 	err = template.Execute(writer, locals)
 	if err != nil {
-		return false, errors.Wrap(err, "Error rendering template")
+		return true, errors.Wrap(err, "Error rendering template")
 	}
 
 	c.Log.Debugf("mace: Rendered view '%s' to '%s'",
 		innerPath, target)
-	return false, nil
+	return true, nil
 }
