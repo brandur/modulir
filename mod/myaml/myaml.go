@@ -11,9 +11,25 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-//
-// ParseFileFrontmatter
-//
+func ParseFile(c *context.Context, source string, data interface{}) (bool, error) {
+	unchanged := c.IsUnchanged(source)
+	if unchanged && !c.Forced() {
+		return unchanged, nil
+	}
+
+	raw, err := ioutil.ReadFile(source)
+	if err != nil {
+		return unchanged, errors.Wrap(err, "Error reading file")
+	}
+
+	err = yaml.Unmarshal(raw, data)
+	if err != nil {
+		return unchanged, errors.Wrap(err, "Error unmarshaling YAML")
+	}
+
+	c.Log.Debugf("myaml: Parsed file: %s", source)
+	return unchanged, nil
+}
 
 func ParseFileFrontmatter(c *context.Context, source string, data interface{}) ([]byte, bool, error) {
 	unchanged := c.IsUnchanged(source)
@@ -31,13 +47,12 @@ func ParseFileFrontmatter(c *context.Context, source string, data interface{}) (
 		return nil, unchanged, errors.Wrap(err, "Error splitting frontmatter")
 	}
 
-
 	err = yaml.Unmarshal([]byte(frontmatter), data)
 	if err != nil {
 		return nil, unchanged, errors.Wrap(err, "Error unmarshaling YAML frontmatter")
 	}
 
-	c.Log.Debugf("myaml: Parsed file: %s", source)
+	c.Log.Debugf("myaml: Parsed file frontmatter: %s", source)
 	return []byte(content), unchanged, nil
 }
 
