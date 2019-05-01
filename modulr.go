@@ -127,7 +127,7 @@ func fillDefaults(config *Config) {
 	}
 
 	if config.Log == nil {
-		config.Log = &log.Logger{Level: log.LevelDebug}
+		config.Log = &log.Logger{Level: log.LevelInfo}
 	}
 
 	if config.SourceDir == "" {
