@@ -16,34 +16,34 @@ import (
 // CopyFile
 //
 
-func CopyFile(c *context.Context, source, target string) error {
+func CopyFile(c *context.Context, source, target string) (bool, error) {
 	unchanged := c.IsUnchanged(source)
 	if unchanged && !c.Forced() {
-		return nil
+		return false, nil
 	}
 
 	in, err := os.Open(source)
 	if err != nil {
-		return errors.Wrap(err, "Error opening copy source")
+		return true, errors.Wrap(err, "Error opening copy source")
 	}
 	defer in.Close()
 
 	out, err := os.Create(target)
 	if err != nil {
-		return errors.Wrap(err, "Error creating copy target")
+		return true, errors.Wrap(err, "Error creating copy target")
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, in)
 	if err != nil {
-		return errors.Wrap(err, "Error copying data")
+		return true, errors.Wrap(err, "Error copying data")
 	}
 
 	c.Log.Debugf("mfile: Copied '%s' to '%s'", source, target)
-	return nil
+	return true, nil
 }
 
-func CopyFileToDir(c *context.Context, source, targetDir string) error {
+func CopyFileToDir(c *context.Context, source, targetDir string) (bool, error) {
 	return CopyFile(c, source, path.Join(targetDir, filepath.Base(source)))
 }
 

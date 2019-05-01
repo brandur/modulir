@@ -3,7 +3,6 @@ package context
 import (
 	"os"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/brandur/modulr/log"
@@ -27,7 +26,7 @@ type Context struct {
 	Concurrency int
 
 	// Jobs is a channel over which jobs to be done are transmitted.
-	Jobs chan func() error
+	Jobs chan func() (bool, error)
 
 	// Log is a logger that can be used to print information.
 	Log log.LoggerInterface
@@ -75,13 +74,7 @@ func NewContext(args *Args) *Context {
 //
 // TODO: It also makes sure the root path is being watched.
 func (c *Context) IsUnchanged(path string) bool {
-	unchanged := c.fileModTimeCache.isUnchanged(path)
-
-	if !unchanged || c.Forced() {
-		atomic.AddInt64(&c.Stats.NumJobsExecuted, 1)
-	}
-
-	return unchanged
+	return c.fileModTimeCache.isUnchanged(path)
 }
 
 // Forced returns whether change checking is disabled in the current context.
@@ -118,7 +111,8 @@ func (c *Context) Wait() bool {
 	// Wait for work to finish.
 	c.pool.Wait()
 
-	c.Stats.NumJobs += int64(c.pool.NumJobs)
+	c.Stats.NumJobs += c.pool.NumJobs
+	c.Stats.NumJobsExecuted += c.pool.NumJobsExecuted
 
 	if c.pool.Errors != nil {
 		return false
@@ -198,9 +192,8 @@ type Stats struct {
 	NumJobs int64
 
 	// NumJobsExecuted is the number of jobs that did some kind of heavier
-	// lifting during the build loop. i.e. Those that either (1) detected a
-	// changed source and rand normally, or (2) were forced to run with a
-	// forced context.
+	// lifting during the build loop. That's those that returned `true` on
+	// execution.
 	NumJobsExecuted int64
 
 	// Start is the start time of the build loop.
@@ -212,17 +205,4 @@ func (s *Stats) Reset() {
 	s.NumJobs = 0
 	s.NumJobsExecuted = 0
 	s.Start = time.Now()
-}
-
-// SetJobSkipped atomically decrements NumJobsExecuted.
-//
-// NumJobsExecuted gets incremented automatically every time a forced context
-// is detected because it appears to modulr that work has been done. However,
-// in many cases a build loop will have to force an operation within a job, but
-// still skip most of the job's work, and in these cases the execution
-// statistics reported will be misleading. SetJobSkipped exposes a way for
-// programs to indicate that despite a forced context most work was skipped,
-// and by extension the build loop will report more accurate numbers.
-func (s *Stats) SetJobSkipped() {
-	atomic.AddInt64(&s.NumJobsExecuted, -1)
 }

@@ -50,20 +50,20 @@ func Load(c *context.Context, basePath, innerPath string, opts *ace.Options) (*t
 // the sources are unchanged, so make sure to use a forced context in case a
 // change is made to them.
 func Render(c *context.Context, basePath, innerPath, target string,
-		opts *ace.Options, locals map[string]interface{}) error {
+		opts *ace.Options, locals map[string]interface{}) (bool, error) {
 
 	template, unchanged, err := Load(c, basePath, innerPath, opts)
 	if err != nil {
-		return errors.Wrap(err, "Error loading template")
+		return unchanged, errors.Wrap(err, "Error loading template")
 	}
 
 	if unchanged && !c.Forced() {
-		return nil
+		return true, nil
 	}
 
 	file, err := os.Create(target)
 	if err != nil {
-		return errors.Wrap(err, "Error creating target file")
+		return false, errors.Wrap(err, "Error creating target file")
 	}
 	defer file.Close()
 
@@ -72,10 +72,10 @@ func Render(c *context.Context, basePath, innerPath, target string,
 
 	err = template.Execute(writer, locals)
 	if err != nil {
-		return errors.Wrap(err, "Error rendering template")
+		return false, errors.Wrap(err, "Error rendering template")
 	}
 
 	c.Log.Debugf("mace: Rendered view '%s' to '%s'",
 		innerPath, target)
-	return nil
+	return false, nil
 }

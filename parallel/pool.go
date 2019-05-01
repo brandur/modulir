@@ -2,6 +2,7 @@ package parallel
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/brandur/modulr/log"
 )
@@ -10,14 +11,22 @@ import (
 // concurrency.
 type Pool struct {
 	Errors []error
-	JobsChan chan func() error
+	JobsChan chan func() (bool, error)
 
 	// NumJobs is the number of jobs that went through a work iteration of the
 	// pool.
 	//
 	// This number is not accurate until Wait has finished fully. It's reset
 	// when Run is called.
-	NumJobs int
+	NumJobs int64
+
+	// NumJobsExecuted is the number of jobs that did some kind of heavier
+	// lifting during the build loop. That's those that returned `true` on
+	// execution.
+	//
+	// This number is not accurate until Wait has finished fully. It's reset
+	// when Run is called.
+	NumJobsExecuted int64
 
 	concurrency int
 
@@ -26,7 +35,7 @@ type Pool struct {
 	errorsChan chan error
 
 	errorsFeederDone chan bool
-	jobsChanInternal chan func() error
+	jobsChanInternal chan func() (bool, error)
 	jobsFeederDone chan bool
 	log log.LoggerInterface
 	running bool
@@ -47,11 +56,12 @@ func (p *Pool) Run() {
 	p.log.Debugf("Running job pool at concurrency %v", p.concurrency)
 
 	p.Errors = nil
-	p.JobsChan = make(chan func() error, 100)
+	p.JobsChan = make(chan func() (bool, error), 100)
 	p.NumJobs = 0
+	p.NumJobsExecuted = 0
 	p.errorsChan = make(chan error)
 	p.errorsFeederDone = make(chan bool)
-	p.jobsChanInternal = make(chan func() error, 100)
+	p.jobsChanInternal = make(chan func() (bool, error), 100)
 	p.jobsFeederDone = make(chan bool)
 	p.running = true
 
@@ -72,7 +82,6 @@ func (p *Pool) Run() {
 	// Job feeder
 	go func() {
 		for job := range p.JobsChan {
-			p.NumJobs++
 			p.jobsChanInternal <- job
 			p.wg.Add(1)
 		}
@@ -128,9 +137,14 @@ func (p *Pool) Wait() bool {
 // The work loop for any single goroutine.
 func (p *Pool) work() {
 	for job := range p.jobsChanInternal {
-		err := job()
+		executed, err := job()
 		if err != nil {
 			p.errorsChan <- err
+		}
+
+		atomic.AddInt64(&p.NumJobs, 1)
+		if executed {
+			atomic.AddInt64(&p.NumJobsExecuted, 1)
 		}
 
 		p.wg.Done()
