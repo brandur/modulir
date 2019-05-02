@@ -72,6 +72,19 @@ func IsMeta(source string) bool {
 	return strings.HasPrefix(file, "_")
 }
 
+// Exists is a shortcut to check if a file exists. It panics if encountering an
+// unexpected error.
+func Exists(file string) bool {
+	_, err := os.Stat(file)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	panic(err)
+}
+
 // MustAbs is a shortcut variant of filepath.Abs which panics instead of
 // returning an error.
 func MustAbs(path string) string {
