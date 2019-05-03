@@ -87,7 +87,7 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 		err = f(c)
 
 	wait:
-		pool.Wait()
+		c.Wait()
 
 		errors = pool.Errors
 		if err != nil {
