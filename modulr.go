@@ -1,7 +1,9 @@
 package modulr
 
 import (
+	"net/http"
 	"os"
+	"path"
 	"time"
 
 	"github.com/brandur/modulr/context"
@@ -22,6 +24,12 @@ type Config struct {
 	//
 	// Defaults to an instance of Logger running at informational level.
 	Log log.LoggerInterface
+
+	// Port specifies the port on which to serve content from TargetDir over
+	// HTTP.
+	//
+	// Defaults to not running if left empty.
+	Port string
 
 	// SourceDir is the directory containing source files.
 	//
@@ -67,10 +75,25 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 
 	c := context.NewContext(&context.Args{
 		Log:       config.Log,
+		Port:      config.Port,
 		Pool:      pool,
 		SourceDir: config.SourceDir,
 		TargetDir: config.TargetDir,
 	})
+
+	startServer := make(chan struct{})
+	go func() {
+		<- startServer
+
+		c.Log.Infof("Serving '%s' on port %s", path.Clean(c.TargetDir), c.Port)
+		c.Log.Infof("Open browser to: http://localhost:%s/", c.Port)
+		handler := http.FileServer(http.Dir(c.TargetDir))
+		err := http.ListenAndServe(":"+c.Port, handler)
+		if err != nil {
+			c.Log.Errorf("Error starting server: %v", err)
+			os.Exit(1)
+		}
+	}()
 
 	for {
 		c.Log.Debugf("Start loop")
@@ -108,7 +131,9 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 		c.Log.Infof("Built site in %s (%v / %v job(s) did work)",
 			time.Now().Sub(c.Stats.Start), c.Stats.NumJobsExecuted, c.Stats.NumJobs)
 
-		if !loop {
+		if loop {
+			startServer <- struct{}{}
+		} else {
 			break
 		}
 

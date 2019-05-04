@@ -14,6 +14,7 @@ type Args struct {
 	Concurrency int
 	Log         log.LoggerInterface
 	Pool        *parallel.Pool
+	Port        string
 	SourceDir   string
 	TargetDir   string
 }
@@ -30,6 +31,10 @@ type Context struct {
 
 	// Log is a logger that can be used to print information.
 	Log log.LoggerInterface
+
+	// Port specifies the port on which to serve content from TargetDir over
+	// HTTP.
+	Port string
 
 	// SourceDir is the directory containing source files.
 	SourceDir string
@@ -59,6 +64,7 @@ func NewContext(args *Args) *Context {
 		Concurrency: args.Concurrency,
 		Jobs:        args.Pool.JobsChan,
 		Log:         args.Log,
+		Port:        args.Port,
 		SourceDir:   args.SourceDir,
 		Stats:       &Stats{},
 		TargetDir:   args.TargetDir,
