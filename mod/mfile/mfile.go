@@ -62,6 +62,65 @@ func EnsureDir(c *context.Context, target string) error {
 	return nil
 }
 
+func EnsureSymlink(c *context.Context, source, target string) error {
+	c.Log.Debugf("Checking symbolic link (%v): %v -> %v",
+		path.Base(source), source, target)
+
+	var actual string
+
+	_, err := os.Stat(target)
+
+	// Note that if a symlink file does exist, but points to a non-existent
+	// location, we still get an "does not exist" error back, so we fall down
+	// to the general create path so that the symlink file can be removed.
+	//
+	// The call to RemoveAll does not affect the other path of the symlink file
+	// not being present because it doesn't care whether or not the file it's
+	// trying remove is actually there.
+	if os.IsNotExist(err) {
+		c.Log.Debugf("Destination link does not exist. Creating.")
+		goto create
+	}
+	if err != nil {
+		return errors.Wrap(err, "Error checking symlink")
+	}
+
+	actual, err = os.Readlink(target)
+	if err != nil {
+		return errors.Wrap(err, "Error reading symlink")
+	}
+
+	if actual == source {
+		c.Log.Debugf("Link exists.")
+		return nil
+	}
+
+	c.Log.Debugf("Destination links to wrong source. Creating.")
+
+create:
+	err = os.RemoveAll(target)
+	if err != nil {
+		return errors.Wrap(err, "Error removing symlink")
+	}
+
+	source, err = filepath.Abs(source)
+	if err != nil {
+		return err
+	}
+
+	target, err = filepath.Abs(target)
+	if err != nil {
+		return err
+	}
+
+	err = os.Symlink(source, target)
+	if err != nil {
+		return errors.Wrap(err, "Error creating symlink")
+	}
+
+	return nil
+}
+
 func IsHidden(source string) bool {
 	file := filepath.Base(source)
 	return strings.HasPrefix(file, ".")
