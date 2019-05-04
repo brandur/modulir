@@ -83,6 +83,18 @@ func (c *Context) Changed(path string) bool {
 	return c.fileModTimeCache.changed(path)
 }
 
+// ChangedAny is the same as Changed except it returns true if any of the given
+// paths have changed.
+func (c *Context) ChangedAny(paths []string) bool {
+	for _, path := range paths {
+		changed := c.Changed(path)
+		if changed {
+			return true
+		}
+	}
+	return false
+}
+
 // Forced returns whether change checking is disabled in the current context.
 //
 // Functions using a forced context still return the right value for their
