@@ -26,6 +26,9 @@ type Context struct {
 	// step.
 	Concurrency int
 
+	// FirstRun indicates whether this is the first run of the build loop.
+	FirstRun bool
+
 	// Jobs is a channel over which jobs to be done are transmitted.
 	Jobs chan func() (bool, error)
 
@@ -62,6 +65,7 @@ type Context struct {
 func NewContext(args *Args) *Context {
 	return &Context{
 		Concurrency: args.Concurrency,
+		FirstRun:    true,
 		Jobs:        args.Pool.JobsChan,
 		Log:         args.Log,
 		Port:        args.Port,

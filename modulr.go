@@ -17,7 +17,7 @@ type Config struct {
 	// Concurrency is the number of concurrent workers to run during the build
 	// step.
 	//
-	// Defaults to 5.
+	// Defaults to 10.
 	Concurrency int
 
 	// Log specifies a logger to use.
@@ -131,10 +131,14 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 		c.Log.Infof("Built site in %s (%v / %v job(s) did work)",
 			time.Now().Sub(c.Stats.Start), c.Stats.NumJobsExecuted, c.Stats.NumJobs)
 
-		if loop {
-			startServer <- struct{}{}
-		} else {
+		if !loop {
 			break
+		}
+
+		if c.FirstRun {
+			startServer <- struct{}{}
+
+			c.FirstRun = false
 		}
 
 		// TODO: Change to watch file system changes instead.
@@ -148,7 +152,7 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 
 func fillDefaults(config *Config) {
 	if config.Concurrency <= 0 {
-		config.Concurrency = 5
+		config.Concurrency = 10
 	}
 
 	if config.Log == nil {
