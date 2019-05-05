@@ -10,6 +10,7 @@ import (
 	"github.com/brandur/modulr/log"
 	"github.com/brandur/modulr/mod/mfile"
 	"github.com/brandur/modulr/parallel"
+	"github.com/fsnotify/fsnotify"
 )
 
 // Config contains configuration.
@@ -73,26 +74,30 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 
 	pool := parallel.NewPool(config.Log, config.Concurrency)
 
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		config.Log.Errorf("Error starting watcher: %v", err)
+		os.Exit(1)
+	}
+	defer watcher.Close()
+
 	c := context.NewContext(&context.Args{
 		Log:       config.Log,
 		Port:      config.Port,
 		Pool:      pool,
 		SourceDir: config.SourceDir,
 		TargetDir: config.TargetDir,
+		Watcher:   watcher,
 	})
+
+	rebuild := make(chan struct{})
+	rebuildDone := make(chan struct{})
+	go watchChanges(c, watcher, rebuild, rebuildDone)
 
 	startServer := make(chan struct{})
 	go func() {
-		<- startServer
-
-		c.Log.Infof("Serving '%s' on port %s", path.Clean(c.TargetDir), c.Port)
-		c.Log.Infof("Open browser to: http://localhost:%s/", c.Port)
-		handler := http.FileServer(http.Dir(c.TargetDir))
-		err := http.ListenAndServe(":"+c.Port, handler)
-		if err != nil {
-			c.Log.Errorf("Error starting server: %v", err)
-			os.Exit(1)
-		}
+		<-startServer
+		serveHTTP(c)
 	}()
 
 	for {
@@ -137,12 +142,12 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 
 		if c.FirstRun {
 			startServer <- struct{}{}
-
 			c.FirstRun = false
+		} else {
+			rebuildDone <- struct{}{}
 		}
 
-		// TODO: Change to watch file system changes instead.
-		time.Sleep(60 * time.Second)
+		<-rebuild
 	}
 
 	if errors != nil {
@@ -165,5 +170,61 @@ func fillDefaults(config *Config) {
 
 	if config.TargetDir == "" {
 		config.TargetDir = "./public"
+	}
+}
+
+func serveHTTP(c *context.Context) {
+	c.Log.Infof("Serving '%s' on port %s", path.Clean(c.TargetDir), c.Port)
+	c.Log.Infof("Open browser to: http://localhost:%s/", c.Port)
+	handler := http.FileServer(http.Dir(c.TargetDir))
+	err := http.ListenAndServe(":"+c.Port, handler)
+	if err != nil {
+		c.Log.Errorf("Error starting server: %v", err)
+		os.Exit(1)
+	}
+}
+
+func shouldRebuild(op fsnotify.Op) bool {
+	if op&fsnotify.Chmod == fsnotify.Chmod {
+		return false
+	}
+
+	return true
+}
+
+func watchChanges(c *context.Context, watcher *fsnotify.Watcher, rebuild, rebuildDone chan struct{}) {
+OUTER:
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+
+			if !shouldRebuild(event.Op) {
+				continue
+			}
+
+			c.Log.Infof("Detected change; rebuilding")
+
+			// Start rebuild
+			rebuild <- struct{}{}
+
+			// Wait until rebuild is finished. In the meantime, drain any
+			// new events that come in on the watcher's channel.
+			for {
+				select {
+				case <-rebuildDone:
+					continue OUTER
+				case <-watcher.Events:
+				}
+			}
+
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			c.Log.Errorf("Error from watcher:", err)
+		}
 	}
 }

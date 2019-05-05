@@ -2,11 +2,13 @@ package context
 
 import (
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/brandur/modulr/log"
 	"github.com/brandur/modulr/parallel"
+	"github.com/fsnotify/fsnotify"
 )
 
 // Args are the set of arguments accepted by NewContext.
@@ -17,6 +19,7 @@ type Args struct {
 	Port        string
 	SourceDir   string
 	TargetDir   string
+	Watcher     *fsnotify.Watcher
 }
 
 // Context contains useful state that can be used by a user-provided build
@@ -51,14 +54,24 @@ type Context struct {
 	// TargetDir is the directory where the site will be built to.
 	TargetDir string
 
+	// Watcher is a file system watcher that picks up changes to source files
+	// and restarts the build loop.
+	Watcher *fsnotify.Watcher
+
 	// fileModTimeCache remembers the last modified times of files.
 	fileModTimeCache *FileModTimeCache
 
 	// forced indicates whether change checking should be bypassed.
 	forced bool
 
+	// mu is a mutex used to synchronize access on watchedPaths.
+	mu *sync.Mutex
+
 	// pool is the job pool used to build the static site.
 	pool *parallel.Pool
+
+	// watchedPaths keeps track of what paths we're currently watching.
+	watchedPaths map[string]struct{}
 }
 
 // NewContext initializes and returns a new Context.
@@ -72,9 +85,12 @@ func NewContext(args *Args) *Context {
 		SourceDir:   args.SourceDir,
 		Stats:       &Stats{},
 		TargetDir:   args.TargetDir,
+		Watcher:     args.Watcher,
 
 		fileModTimeCache: NewFileModTimeCache(args.Log),
+		mu:               new(sync.Mutex),
 		pool:             args.Pool,
+		watchedPaths:     make(map[string]struct{}),
 	}
 }
 
@@ -84,6 +100,15 @@ func NewContext(args *Args) *Context {
 //
 // TODO: It also makes sure the root path is being watched.
 func (c *Context) Changed(path string) bool {
+	if !c.exists(path) {
+		return false
+	}
+
+	err := c.addWatched(path)
+	if err != nil {
+		c.Log.Errorf("Error watching source: %v", err)
+	}
+
 	return c.fileModTimeCache.changed(path)
 }
 
@@ -150,6 +175,36 @@ func (c *Context) Wait() bool {
 	return true
 }
 
+func (c *Context) addWatched(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	// Watch the parent directory unless the file is a directory itself. This
+	// will hopefully mean fewer individual entries in the notifier.
+	if !info.IsDir() {
+		path = filepath.Dir(path)
+	}
+
+	// Normalize the path (Abs also calls Clean).
+	path, err = filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+
+	// Do nothing if we're already watching the path.
+	_, ok := c.watchedPaths[path]
+	if ok {
+		return nil
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.Watcher.Add(path)
+}
+
 // clone clones the current Context.
 func (c *Context) clone() *Context {
 	return &Context{
@@ -158,10 +213,27 @@ func (c *Context) clone() *Context {
 		SourceDir:   c.SourceDir,
 		Stats:       c.Stats,
 		TargetDir:   c.TargetDir,
+		Watcher:     c.Watcher,
 
 		fileModTimeCache: c.fileModTimeCache,
 		forced:           c.forced,
+		mu:               c.mu,
+		watchedPaths:     c.watchedPaths,
 	}
+}
+
+func (c *Context) exists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	if err != nil {
+		c.Log.Errorf("Error checking file existence: %v", err)
+	}
+	return false
 }
 
 // FileModTimeCache tracks the last modified time of files seen so a
