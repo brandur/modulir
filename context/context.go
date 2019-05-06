@@ -105,14 +105,14 @@ func (c *Context) AddJob(name string, f func() (bool, error)) {
 //
 // TODO: It also makes sure the root path is being watched.
 func (c *Context) Changed(path string) bool {
-	if !c.exists(path) {
-		return false
-	}
-
 	// Normalize the path (Abs also calls Clean).
 	path, err := filepath.Abs(path)
 	if err != nil {
 		c.Log.Errorf("Error normalizing path: %v", err)
+	}
+
+	if !c.exists(path) {
+		return false
 	}
 
 	err = c.addWatched(path)
@@ -126,13 +126,16 @@ func (c *Context) Changed(path string) bool {
 // ChangedAny is the same as Changed except it returns true if any of the given
 // paths have changed.
 func (c *Context) ChangedAny(paths []string) bool {
+	// We have to run through every element in paths even if we detect changed
+	// early so that each is correctly added to the file mod time cache and
+	// watched.
+	changed := false
+
 	for _, path := range paths {
-		changed := c.Changed(path)
-		if changed {
-			return true
-		}
+		changed = changed || c.Changed(path)
 	}
-	return false
+
+	return changed
 }
 
 // Forced returns whether change checking is disabled in the current context.
