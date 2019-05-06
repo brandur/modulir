@@ -171,6 +171,14 @@ func (c *Context) ForcedContext() *Context {
 // can be queued. If it wasn't, the jobs channel will be closed, and trying to
 // enqueue a new one will panic.
 func (c *Context) Wait() bool {
+	c.Stats.LoopDuration =
+		c.Stats.LoopDuration + time.Now().Sub(c.Stats.lastLoopStart)
+
+	defer func() {
+		// Reset the last loop start.
+		c.Stats.lastLoopStart = time.Now()
+	}()
+
 	// Wait for work to finish.
 	c.pool.Wait()
 
@@ -303,6 +311,11 @@ type Stats struct {
 	// JobsExecuted is a slice of jobs that were executed on the last run.
 	JobsExecuted []*parallel.Job
 
+	// LoopDuration is the total amount of time spent in the user's build loop
+	// enqueuing jobs. Jobs may be running in the background during this time,
+	// but all the time spent waiting for jobs to finish is excluded.
+	LoopDuration time.Duration
+
 	// NumJobs is the total number of jobs generated for the build loop.
 	NumJobs int64
 
@@ -313,12 +326,18 @@ type Stats struct {
 
 	// Start is the start time of the build loop.
 	Start time.Time
+
+	// lastLoopStart is when the last user build loop started (i.e. this is set
+	// to the current timestamp whenever a call to context.Wait finishes).
+	lastLoopStart time.Time
 }
 
 // Reset resets statistics.
 func (s *Stats) Reset() {
 	s.JobsExecuted = nil
+	s.LoopDuration = time.Duration(0)
 	s.NumJobs = 0
 	s.NumJobsExecuted = 0
 	s.Start = time.Now()
+	s.lastLoopStart = time.Now()
 }

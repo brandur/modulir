@@ -8,7 +8,6 @@ import (
 
 	"github.com/brandur/modulr/context"
 	"github.com/brandur/modulr/log"
-	"github.com/brandur/modulr/mod/mfile"
 	"github.com/brandur/modulr/parallel"
 	"github.com/fsnotify/fsnotify"
 )
@@ -107,15 +106,10 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 		pool.Run()
 		c.Jobs = pool.JobsChan
 
-		err := mfile.EnsureDir(c, c.TargetDir)
-		if err != nil {
-			goto wait
-		}
-
 		err = f(c)
 
-	wait:
 		c.Wait()
+		buildDuration := time.Now().Sub(c.Stats.Start)
 
 		errors = pool.Errors
 		if err != nil {
@@ -141,8 +135,8 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 			}
 		}
 
-		c.Log.Infof("Built site in %s (%v / %v job(s) did work)",
-			time.Now().Sub(c.Stats.Start), c.Stats.NumJobsExecuted, c.Stats.NumJobs)
+		c.Log.Infof("Built site in %s (%v / %v job(s) did work; loop took %v)",
+			buildDuration, c.Stats.NumJobsExecuted, c.Stats.NumJobs, c.Stats.LoopDuration)
 
 		if !loop {
 			break
