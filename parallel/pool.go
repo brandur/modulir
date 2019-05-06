@@ -40,10 +40,11 @@ type Pool struct {
 
 	concurrency int
 
+	errorsMu sync.Mutex
 	jobsChanInternal chan Job
+	jobsExecutedMu sync.Mutex
 	jobsFeederDone chan bool
 	log log.LoggerInterface
-	mu sync.Mutex
 	running bool
 	wg          sync.WaitGroup
 }
@@ -127,18 +128,18 @@ func (p *Pool) work() {
 	for job := range p.jobsChanInternal {
 		executed, err := job.F()
 		if err != nil {
-			p.mu.Lock()
+			p.errorsMu.Lock()
 			p.Errors = append(p.Errors, err)
-			p.mu.Unlock()
+			p.errorsMu.Unlock()
 		}
 
 		atomic.AddInt64(&p.NumJobs, 1)
 		if executed {
 			atomic.AddInt64(&p.NumJobsExecuted, 1)
 			
-			p.mu.Lock()
+			p.jobsExecutedMu.Lock()
 			p.JobsExecuted = append(p.JobsExecuted, &job)
-			p.mu.Unlock()
+			p.jobsExecutedMu.Unlock()
 		}
 
 		p.wg.Done()
