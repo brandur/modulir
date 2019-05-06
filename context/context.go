@@ -132,7 +132,9 @@ func (c *Context) ChangedAny(paths []string) bool {
 	changed := false
 
 	for _, path := range paths {
-		changed = changed || c.Changed(path)
+		// Make sure that c.Changed appears first or there seems to be a danger
+		// of Go compiling it out.
+		changed = c.Changed(path) || changed
 	}
 
 	return changed
