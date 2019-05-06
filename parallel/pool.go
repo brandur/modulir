@@ -40,11 +40,6 @@ type Pool struct {
 
 	concurrency int
 
-	// Send errors through a channel to make appending to `errors` Goroutine
-	// safe.
-	errorsChan chan error
-
-	errorsFeederDone chan bool
 	jobsChanInternal chan Job
 	jobsFeederDone chan bool
 	log log.LoggerInterface
@@ -71,8 +66,6 @@ func (p *Pool) Run() {
 	p.JobsExecuted = nil
 	p.NumJobs = 0
 	p.NumJobsExecuted = 0
-	p.errorsChan = make(chan error)
-	p.errorsFeederDone = make(chan bool)
 	p.jobsChanInternal = make(chan Job, 500)
 	p.jobsFeederDone = make(chan bool)
 	p.running = true
@@ -80,16 +73,6 @@ func (p *Pool) Run() {
 	for i := 0; i < p.concurrency; i++ {
 		go p.work()
 	}
-
-	// Error feeder
-	go func() {
-		for err := range p.errorsChan {
-			p.Errors = append(p.Errors, err)
-		}
-
-		// Runs after errorsChan has been closed.
-		p.errorsFeederDone <- true
-	}()
 
 	// Job feeder
 	go func() {
@@ -133,13 +116,6 @@ func (p *Pool) Wait() bool {
 	// close channel to stop workers
 	close(p.jobsChanInternal)
 
-	// Signal to the errors channel that all work is done.
-	close(p.errorsChan)
-
-	// Now wait for the error feeder to be finished so that we know all errors
-	// have been pushed to Errors.
-	<- p.errorsFeederDone
-
 	if p.Errors != nil {
 		return false
 	}
@@ -151,7 +127,9 @@ func (p *Pool) work() {
 	for job := range p.jobsChanInternal {
 		executed, err := job.F()
 		if err != nil {
-			p.errorsChan <- err
+			p.mu.Lock()
+			p.Errors = append(p.Errors, err)
+			p.mu.Unlock()
 		}
 
 		atomic.AddInt64(&p.NumJobs, 1)
