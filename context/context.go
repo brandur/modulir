@@ -33,7 +33,7 @@ type Context struct {
 	FirstRun bool
 
 	// Jobs is a channel over which jobs to be done are transmitted.
-	Jobs chan func() (bool, error)
+	Jobs chan parallel.Job
 
 	// Log is a logger that can be used to print information.
 	Log log.LoggerInterface
@@ -92,6 +92,11 @@ func NewContext(args *Args) *Context {
 		pool:             args.Pool,
 		watchedPaths:     make(map[string]struct{}),
 	}
+}
+
+// AddJob is a shortcut for adding a new job to the Jobs channel.
+func (c *Context) AddJob(name string, f func() (bool, error)) {
+	c.Jobs <- parallel.Job {Name: name, F: f}
 }
 
 // Changed returns whether the target path's modified time has changed since

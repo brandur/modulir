@@ -7,11 +7,18 @@ import (
 	"github.com/brandur/modulr/log"
 )
 
+// Job is a wrapper for a piece of work that should be executed by the job
+// pool.
+type Job struct {
+	F func() (bool, error)
+	Name string
+}
+
 // Pool is a worker group that runs a number of jobs at a configured
 // concurrency.
 type Pool struct {
 	Errors []error
-	JobsChan chan func() (bool, error)
+	JobsChan chan Job
 
 	// NumJobs is the number of jobs that went through a work iteration of the
 	// pool.
@@ -35,7 +42,7 @@ type Pool struct {
 	errorsChan chan error
 
 	errorsFeederDone chan bool
-	jobsChanInternal chan func() (bool, error)
+	jobsChanInternal chan Job
 	jobsFeederDone chan bool
 	log log.LoggerInterface
 	running bool
@@ -56,12 +63,12 @@ func (p *Pool) Run() {
 	p.log.Debugf("Running job pool at concurrency %v", p.concurrency)
 
 	p.Errors = nil
-	p.JobsChan = make(chan func() (bool, error), 100)
+	p.JobsChan = make(chan Job, 500)
 	p.NumJobs = 0
 	p.NumJobsExecuted = 0
 	p.errorsChan = make(chan error)
 	p.errorsFeederDone = make(chan bool)
-	p.jobsChanInternal = make(chan func() (bool, error), 100)
+	p.jobsChanInternal = make(chan Job, 500)
 	p.jobsFeederDone = make(chan bool)
 	p.running = true
 
@@ -137,7 +144,7 @@ func (p *Pool) Wait() bool {
 // The work loop for any single goroutine.
 func (p *Pool) work() {
 	for job := range p.jobsChanInternal {
-		executed, err := job()
+		executed, err := job.F()
 		if err != nil {
 			p.errorsChan <- err
 		}
