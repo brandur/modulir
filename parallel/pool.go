@@ -3,6 +3,7 @@ package parallel
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/brandur/modulr/log"
 )
@@ -10,6 +11,7 @@ import (
 // Job is a wrapper for a piece of work that should be executed by the job
 // pool.
 type Job struct {
+	Duration time.Duration
 	F func() (bool, error)
 	Name string
 }
@@ -126,7 +128,10 @@ func (p *Pool) Wait() bool {
 // The work loop for any single goroutine.
 func (p *Pool) work() {
 	for job := range p.jobsChanInternal {
+		start := time.Now()
 		executed, err := job.F()
+		job.Duration = time.Now().Sub(start)
+
 		if err != nil {
 			p.errorsMu.Lock()
 			p.Errors = append(p.Errors, err)

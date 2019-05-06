@@ -137,7 +137,7 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 			// We can expect pretty much everything to have ran on the first
 			// run, so only print executed jobs on subsequent runs.
 			for _, job := range c.Stats.JobsExecuted {
-				c.Log.Infof("Executed job: %s", job.Name)
+				c.Log.Infof("Executed job: %s (time: %v)", job.Name, job.Duration)
 			}
 		}
 
