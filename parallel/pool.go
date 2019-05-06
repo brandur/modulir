@@ -20,6 +20,9 @@ type Pool struct {
 	Errors []error
 	JobsChan chan Job
 
+	// JobsExecuted is a slice of jobs that were executed on the last run.
+	JobsExecuted []*Job
+
 	// NumJobs is the number of jobs that went through a work iteration of the
 	// pool.
 	//
@@ -45,6 +48,7 @@ type Pool struct {
 	jobsChanInternal chan Job
 	jobsFeederDone chan bool
 	log log.LoggerInterface
+	mu sync.Mutex
 	running bool
 	wg          sync.WaitGroup
 }
@@ -64,6 +68,7 @@ func (p *Pool) Run() {
 
 	p.Errors = nil
 	p.JobsChan = make(chan Job, 500)
+	p.JobsExecuted = nil
 	p.NumJobs = 0
 	p.NumJobsExecuted = 0
 	p.errorsChan = make(chan error)
@@ -152,6 +157,10 @@ func (p *Pool) work() {
 		atomic.AddInt64(&p.NumJobs, 1)
 		if executed {
 			atomic.AddInt64(&p.NumJobsExecuted, 1)
+			
+			p.mu.Lock()
+			p.JobsExecuted = append(p.JobsExecuted, &job)
+			p.mu.Unlock()
 		}
 
 		p.wg.Done()

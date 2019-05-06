@@ -163,6 +163,7 @@ func (c *Context) Wait() bool {
 	// Wait for work to finish.
 	c.pool.Wait()
 
+	c.Stats.JobsExecuted = append(c.Stats.JobsExecuted, c.pool.JobsExecuted...)
 	c.Stats.NumJobs += c.pool.NumJobs
 	c.Stats.NumJobsExecuted += c.pool.NumJobsExecuted
 
@@ -290,6 +291,9 @@ func (c *FileModTimeCache) changed(path string) bool {
 
 // Stats tracks various statistics about the build process.
 type Stats struct {
+	// JobsExecuted is a slice of jobs that were executed on the last run.
+	JobsExecuted []*parallel.Job
+
 	// NumJobs is the total number of jobs generated for the build loop.
 	NumJobs int64
 
@@ -304,6 +308,7 @@ type Stats struct {
 
 // Reset resets statistics.
 func (s *Stats) Reset() {
+	s.JobsExecuted = nil
 	s.NumJobs = 0
 	s.NumJobsExecuted = 0
 	s.Start = time.Now()
