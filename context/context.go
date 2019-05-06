@@ -109,7 +109,13 @@ func (c *Context) Changed(path string) bool {
 		return false
 	}
 
-	err := c.addWatched(path)
+	// Normalize the path (Abs also calls Clean).
+	path, err := filepath.Abs(path)
+	if err != nil {
+		c.Log.Errorf("Error normalizing path: %v", err)
+	}
+
+	err = c.addWatched(path)
 	if err != nil {
 		c.Log.Errorf("Error watching source: %v", err)
 	}
@@ -191,12 +197,6 @@ func (c *Context) addWatched(path string) error {
 	// will hopefully mean fewer individual entries in the notifier.
 	if !info.IsDir() {
 		path = filepath.Dir(path)
-	}
-
-	// Normalize the path (Abs also calls Clean).
-	path, err = filepath.Abs(path)
-	if err != nil {
-		return err
 	}
 
 	// Do nothing if we're already watching the path.
@@ -284,9 +284,13 @@ func (c *FileModTimeCache) changed(path string) bool {
 	changed := lastModTime.Before(modTime)
 	if !changed {
 		c.log.Debugf("context: No changes to source: %s", path)
+		return false
 	}
 
-	return changed
+	// TODO: Debug help. Remove eventually.
+	c.log.Infof("context: File did change: %s (last mod time = %v, mod time = %v", path, lastModTime, modTime)
+
+	return true
 }
 
 // Stats tracks various statistics about the build process.
