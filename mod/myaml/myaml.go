@@ -46,32 +46,6 @@ func ParseFileFrontmatter(c *context.Context, source string, data interface{}) (
 	return []byte(content), nil
 }
 
-// TODO: get rid of this
-func ParseFileFrontmatter2(c *context.Context, source string, data interface{}) ([]byte, bool, error) {
-	changed := c.Changed(source)
-	if !changed && !c.Forced() {
-		return nil, changed, nil
-	}
-
-	raw, err := ioutil.ReadFile(source)
-	if err != nil {
-		return nil, changed, errors.Wrap(err, "Error reading file")
-	}
-
-	frontmatter, content, err := splitFrontmatter(string(raw))
-	if err != nil {
-		return nil, changed, errors.Wrap(err, "Error splitting frontmatter")
-	}
-
-	err = yaml.Unmarshal([]byte(frontmatter), data)
-	if err != nil {
-		return nil, changed, errors.Wrap(err, "Error unmarshaling YAML frontmatter")
-	}
-
-	c.Log.Debugf("myaml: Parsed file frontmatter: %s", source)
-	return []byte(content), changed, nil
-}
-
 //
 // Private
 //
