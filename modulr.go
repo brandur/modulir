@@ -121,7 +121,7 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 				c.Log.Errorf("Build error: %v", err)
 
 				if i >= 9 {
-					c.Log.Errorf("Too many errors.")
+					c.Log.Errorf("Too many errors (scroll stopping)")
 					break
 				}
 			}
@@ -130,8 +130,13 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 		if !c.FirstRun {
 			// We can expect pretty much everything to have ran on the first
 			// run, so only print executed jobs on subsequent runs.
-			for _, job := range c.Stats.JobsExecuted {
+			for i, job := range c.Stats.JobsExecuted {
 				c.Log.Infof("Executed job: %s (time: %v)", job.Name, job.Duration)
+
+				if i >= 9 {
+					c.Log.Infof("Many jobs executed (scroll stopping)")
+					break
+				}
 			}
 		}
 
