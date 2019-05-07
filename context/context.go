@@ -112,6 +112,7 @@ func (c *Context) Changed(path string) bool {
 	}
 
 	if !c.exists(path) {
+		c.Log.Errorf("Path passed to Changed doesn't exist: %s", path)
 		return false
 	}
 
@@ -125,7 +126,7 @@ func (c *Context) Changed(path string) bool {
 
 // ChangedAny is the same as Changed except it returns true if any of the given
 // paths have changed.
-func (c *Context) ChangedAny(paths []string) bool {
+func (c *Context) ChangedAny(paths... string) bool {
 	// We have to run through every element in paths even if we detect changed
 	// early so that each is correctly added to the file mod time cache and
 	// watched.
