@@ -11,24 +11,19 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func ParseFile(c *context.Context, source string, data interface{}) (bool, error) {
-	changed := c.Changed(source)
-	if !changed && !c.Forced() {
-		return changed, nil
-	}
-
+func ParseFile(c *context.Context, source string, data interface{}) error {
 	raw, err := ioutil.ReadFile(source)
 	if err != nil {
-		return changed, errors.Wrap(err, "Error reading file")
+		return errors.Wrap(err, "Error reading file")
 	}
 
 	err = yaml.Unmarshal(raw, data)
 	if err != nil {
-		return changed, errors.Wrap(err, "Error unmarshaling YAML")
+		return errors.Wrap(err, "Error unmarshaling YAML")
 	}
 
 	c.Log.Debugf("myaml: Parsed file: %s", source)
-	return changed, nil
+	return nil
 }
 
 func ParseFileFrontmatter(c *context.Context, source string, data interface{}) ([]byte, error) {
