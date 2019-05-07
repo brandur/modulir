@@ -121,14 +121,16 @@ create:
 	return nil
 }
 
-func IsHidden(source string) bool {
-	file := filepath.Base(source)
-	return strings.HasPrefix(file, ".")
+func IsBackup(base string) bool {
+	return strings.HasSuffix(base, "~")
 }
 
-func IsMeta(source string) bool {
-	file := filepath.Base(source)
-	return strings.HasPrefix(file, "_")
+func IsHidden(base string) bool {
+	return strings.HasPrefix(base, ".")
+}
+
+func IsMeta(base string) bool {
+	return strings.HasPrefix(base, "_")
 }
 
 // Exists is a shortcut to check if a file exists. It panics if encountering an
@@ -184,9 +186,10 @@ func ReadFile(c *context.Context, source string) ([]byte, bool, error) {
 
 // ReadDir reads files in a directory and returns a list of file paths.
 //
-// Unlike ioutil.ReadDir, this function skips hidden and "meta" files (i.e.
-// prefixed by an underscore), returns a list of full paths (easier to plumb
-// into other functions), and sets up a watch on the listed source.
+// Unlike ioutil.ReadDir, this function skips hidden, "meta" (i.e. prefixed by
+// an underscore), and Vim backup (i.e. suffixed with a tilde) files, and
+// returns a list of full paths (easier to plumb into other functions), and
+// sets up a watch on the listed source.
 func ReadDir(c *context.Context, source string) ([]string, error) {
 	infos, err := ioutil.ReadDir(source)
 	if err != nil {
@@ -196,7 +199,8 @@ func ReadDir(c *context.Context, source string) ([]string, error) {
 	var files []string
 
 	for _, info := range infos {
-		if IsHidden(info.Name()) || IsMeta(info.Name()) {
+		base := filepath.Base(info.Name())
+		if IsBackup(base) || IsHidden(base) || IsMeta(base) {
 			continue
 		}
 
@@ -209,8 +213,7 @@ func ReadDir(c *context.Context, source string) ([]string, error) {
 
 // ReadDirAll reads files in a directory and returns a list of file paths.
 //
-// Unlike ReadDir, it returns hidden and "meta" files (i.e. prefixed by an
-// underscore).
+// Unlike ReadDir, it returns "meta" files (i.e. prefixed by an underscore).
 func ReadDirAll(c *context.Context, source string) ([]string, error) {
 	infos, err := ioutil.ReadDir(source)
 	if err != nil {
@@ -220,6 +223,11 @@ func ReadDirAll(c *context.Context, source string) ([]string, error) {
 	var files []string
 
 	for _, info := range infos {
+		base := filepath.Base(info.Name())
+		if IsBackup(base) || IsHidden(base) {
+			continue
+		}
+
 		files = append(files, path.Join(source, info.Name()))
 	}
 
