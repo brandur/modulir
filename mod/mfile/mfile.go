@@ -211,10 +211,10 @@ func ReadDir(c *context.Context, source string) ([]string, error) {
 	return files, nil
 }
 
-// ReadDirAll reads files in a directory and returns a list of file paths.
+// ReadDirWithMeta reads files in a directory and returns a list of file paths.
 //
 // Unlike ReadDir, it returns "meta" files (i.e. prefixed by an underscore).
-func ReadDirAll(c *context.Context, source string) ([]string, error) {
+func ReadDirWithMeta(c *context.Context, source string) ([]string, error) {
 	infos, err := ioutil.ReadDir(source)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error reading directory")
