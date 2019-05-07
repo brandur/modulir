@@ -99,6 +99,16 @@ func (c *Context) AddJob(name string, f func() (bool, error)) {
 	c.Jobs <- parallel.Job {Name: name, F: f}
 }
 
+// AllowError is a helper that's useful for when an error coming back from a
+// job should be logged, but shouldn't fail the build.
+func (c *Context) AllowError(executed bool, err error) bool {
+	if err != nil {
+		c.Log.Errorf("Error allowed: %v", err)
+	}
+	return executed
+}
+
+
 // Changed returns whether the target path's modified time has changed since
 // the last time it was checked. It also saves the last modified time for
 // future checks.
