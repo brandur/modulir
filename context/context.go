@@ -312,8 +312,9 @@ func (c *FileModTimeCache) changed(path string) bool {
 		return false
 	}
 
-	// TODO: Debug help. Remove eventually.
-	c.log.Infof("context: File did change: %s (last mod time = %v, mod time = %v", path, lastModTime, modTime)
+	// Debug help if needed.
+	//c.log.Infof("context: File did change: %s (last mod time = %v, mod time = %v)",
+	//	path, lastModTime, modTime)
 
 	return true
 }
