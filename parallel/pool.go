@@ -80,8 +80,8 @@ func (p *Pool) Run() {
 	// Job feeder
 	go func() {
 		for job := range p.JobsChan {
-			p.jobsChanInternal <- job
 			p.wg.Add(1)
+			p.jobsChanInternal <- job
 		}
 
 		// Runs after JobsChan has been closed.
@@ -127,7 +127,11 @@ func (p *Pool) Wait() bool {
 
 // The work loop for any single goroutine.
 func (p *Pool) work() {
-	for job := range p.jobsChanInternal {
+	for j := range p.jobsChanInternal {
+		// Required so that we have a stable pointer that we can keep past the
+		// lifetime of the loop. Don't change this.
+		job := j
+
 		start := time.Now()
 		executed, err := job.F()
 		job.Duration = time.Now().Sub(start)
