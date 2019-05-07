@@ -101,7 +101,7 @@ func build(config *Config, f func(*context.Context) error, loop bool) {
 
 	for {
 		c.Log.Debugf("Start loop")
-		c.Stats.Reset()
+		c.StartBuild()
 
 		pool.Run()
 		c.Jobs = pool.JobsChan

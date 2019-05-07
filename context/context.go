@@ -162,6 +162,13 @@ func (c *Context) ForcedContext() *Context {
 	return forceC
 }
 
+// StartBuild signals to the Context to do the bookkeeping it needs to do for
+// the next build round.
+func (c *Context) StartBuild() {
+	c.Stats.Reset()
+	c.fileModTimeCache.promote()
+}
+
 // Wait waits on the job pool to execute its current round of jobs.
 //
 // Returns true if the round of jobs all executed successfully, and false
@@ -262,6 +269,7 @@ type FileModTimeCache struct {
 	log              log.LoggerInterface
 	mu               sync.Mutex
 	pathToModTimeMap map[string]time.Time
+	pathToModTimeMapNew map[string]time.Time
 }
 
 // NewFileModTimeCache returns a new FileModTimeCache.
@@ -269,6 +277,7 @@ func NewFileModTimeCache(log log.LoggerInterface) *FileModTimeCache {
 	return &FileModTimeCache{
 		log:              log,
 		pathToModTimeMap: make(map[string]time.Time),
+		pathToModTimeMapNew: make(map[string]time.Time),
 	}
 }
 
@@ -286,9 +295,11 @@ func (c *FileModTimeCache) changed(path string) bool {
 
 	modTime := stat.ModTime()
 
-	c.mu.Lock()
 	lastModTime, ok := c.pathToModTimeMap[path]
-	c.pathToModTimeMap[path] = modTime
+
+	// Store to the new map for eventual promotion.
+	c.mu.Lock()
+	c.pathToModTimeMapNew[path] = modTime
 	c.mu.Unlock()
 
 	if !ok {
@@ -305,6 +316,22 @@ func (c *FileModTimeCache) changed(path string) bool {
 	c.log.Infof("context: File did change: %s (last mod time = %v, mod time = %v", path, lastModTime, modTime)
 
 	return true
+}
+
+// promote takes all the new modification times collected during this round
+// (i.e. a build phase) and promotes them into the main map so that they're
+// available for the next one.
+func (c *FileModTimeCache) promote() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Promote all new values to the current map.
+	for path, modTime := range c.pathToModTimeMapNew {
+		c.pathToModTimeMap[path] = modTime	
+	}
+
+	// Clear the new map for the next round.
+	c.pathToModTimeMapNew = make(map[string]time.Time)
 }
 
 // Stats tracks various statistics about the build process.
