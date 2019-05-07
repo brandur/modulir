@@ -184,9 +184,9 @@ func ReadFile(c *context.Context, source string) ([]byte, bool, error) {
 
 // ReadDir reads files in a directory and returns a list of file paths.
 //
-// Unlike ioutil.ReadDir, this function skips hidden files, returns a list of
-// full paths (easier to plumb into other functions), and sets up a watch on
-// the listed source.
+// Unlike ioutil.ReadDir, this function skips hidden and "meta" files (i.e.
+// prefixed by an underscore), returns a list of full paths (easier to plumb
+// into other functions), and sets up a watch on the listed source.
 func ReadDir(c *context.Context, source string) ([]string, error) {
 	infos, err := ioutil.ReadDir(source)
 	if err != nil {
@@ -200,6 +200,26 @@ func ReadDir(c *context.Context, source string) ([]string, error) {
 			continue
 		}
 
+		files = append(files, path.Join(source, info.Name()))
+	}
+
+	c.Log.Debugf("mfile: Read dir: %s", source)
+	return files, nil
+}
+
+// ReadDirAll reads files in a directory and returns a list of file paths.
+//
+// Unlike ReadDir, it returns hidden and "meta" files (i.e. prefixed by an
+// underscore).
+func ReadDirAll(c *context.Context, source string) ([]string, error) {
+	infos, err := ioutil.ReadDir(source)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error reading directory")
+	}
+
+	var files []string
+
+	for _, info := range infos {
 		files = append(files, path.Join(source, info.Name()))
 	}
 
