@@ -1,6 +1,7 @@
 package modulr
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -28,8 +29,8 @@ type Config struct {
 	// Port specifies the port on which to serve content from TargetDir over
 	// HTTP.
 	//
-	// Defaults to not running if left empty.
-	Port string
+	// Defaults to not running if left unset.
+	Port int
 
 	// SourceDir is the directory containing source files.
 	//
@@ -181,10 +182,10 @@ func fillDefaults(config *Config) {
 }
 
 func serveHTTP(c *context.Context) {
-	c.Log.Infof("Serving '%s' on port %s", path.Clean(c.TargetDir), c.Port)
-	c.Log.Infof("Open browser to: http://localhost:%s/", c.Port)
+	c.Log.Infof("Serving '%s' on port %v", path.Clean(c.TargetDir), c.Port)
+	c.Log.Infof("Open browser to: http://localhost:%v/", c.Port)
 	handler := http.FileServer(http.Dir(c.TargetDir))
-	err := http.ListenAndServe(":"+c.Port, handler)
+	err := http.ListenAndServe(fmt.Sprintf(":%v", c.Port), handler)
 	if err != nil {
 		c.Log.Errorf("Error starting server: %v", err)
 		os.Exit(1)

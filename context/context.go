@@ -16,7 +16,7 @@ type Args struct {
 	Concurrency int
 	Log         log.LoggerInterface
 	Pool        *parallel.Pool
-	Port        string
+	Port        int
 	SourceDir   string
 	TargetDir   string
 	Watcher     *fsnotify.Watcher
@@ -40,7 +40,7 @@ type Context struct {
 
 	// Port specifies the port on which to serve content from TargetDir over
 	// HTTP.
-	Port string
+	Port int
 
 	// SourceDir is the directory containing source files.
 	SourceDir string
