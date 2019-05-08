@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/brandur/modulr/log"
+	"github.com/brandur/modulir/log"
 	assert "github.com/stretchr/testify/require"
 )
 
@@ -21,9 +21,9 @@ func TestWithWork(t *testing.T) {
 	p := NewPool(&log.Logger{Level: log.LevelDebug}, 10)
 	p.Run()
 
-	p.JobsChan <- func() (bool, error) { return true, nil }
-	p.JobsChan <- func() (bool, error) { return true, nil }
-	p.JobsChan <- func() (bool, error) { return false, nil }
+	p.JobsChan <- NewJob("job 0", func() (bool, error) { return true, nil })
+	p.JobsChan <- NewJob("job 1", func() (bool, error) { return true, nil })
+	p.JobsChan <- NewJob("job 2", func() (bool, error) { return false, nil })
 	p.Wait()
 
 	assert.Equal(t, []error(nil), p.Errors)
@@ -35,9 +35,9 @@ func TestWithError(t *testing.T) {
 	p := NewPool(&log.Logger{Level: log.LevelDebug}, 10)
 	p.Run()
 
-	p.JobsChan <- func() (bool, error) { return true, nil }
-	p.JobsChan <- func() (bool, error) { return true, nil }
-	p.JobsChan <- func() (bool, error) { return true, fmt.Errorf("error") }
+	p.JobsChan <- NewJob("job 0", func() (bool, error) { return true, nil })
+	p.JobsChan <- NewJob("job 1", func() (bool, error) { return true, nil })
+	p.JobsChan <- NewJob("job 2", func() (bool, error) { return true, fmt.Errorf("error") })
 	p.Wait()
 
 	assert.Equal(t, []error{fmt.Errorf("error")}, p.Errors)

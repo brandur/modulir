@@ -1,4 +1,4 @@
-package modulr
+package modulir
 
 import (
 	"fmt"
@@ -7,9 +7,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/brandur/modulr/context"
-	"github.com/brandur/modulr/log"
-	"github.com/brandur/modulr/parallel"
+	"github.com/brandur/modulir/context"
+	"github.com/brandur/modulir/log"
+	"github.com/brandur/modulir/parallel"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -46,6 +46,10 @@ type Config struct {
 // Context contains useful state that can be used by a user-provided build
 // function.
 type Context = context.Context
+
+// Job is a wrapper for a piece of work that should be executed by the job
+// pool.
+type Job = parallel.Job
 
 // Build is one of the main entry points to the program. Call this to build
 // only one time.

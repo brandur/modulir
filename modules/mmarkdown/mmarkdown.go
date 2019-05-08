@@ -3,8 +3,8 @@ package mmarkdown
 import (
 	"io/ioutil"
 
-	"github.com/brandur/modulr/context"
-	"github.com/brandur/modulr/mod/mfile"
+	"github.com/brandur/modulir/context"
+	"github.com/brandur/modulir/modules/mfile"
 	"github.com/pkg/errors"
 	"gopkg.in/russross/blackfriday.v2"
 )

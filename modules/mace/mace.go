@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/brandur/modulr/context"
+	"github.com/brandur/modulir/context"
 	"github.com/pkg/errors"
 	"github.com/yosssi/ace"
 )
@@ -20,7 +20,7 @@ func Load(c *context.Context, basePath, innerPath string, opts *ace.Options) (*t
 	// around the names of templates, which makes working with known files
 	// unnecessarily difficult. Here we correct that by allowing an extension
 	// to be passed to the function and stripping it off for Ace's benefit.
- 	extlessBasePath := basePath
+	extlessBasePath := basePath
 	if strings.HasSuffix(basePath, ".ace") {
 		extlessBasePath = strings.TrimSuffix(basePath, ".ace")
 	}

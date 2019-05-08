@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/brandur/modulr/context"
+	"github.com/brandur/modulir/context"
 	"github.com/pkg/errors"
 )
 

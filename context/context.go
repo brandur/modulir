@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/brandur/modulr/log"
-	"github.com/brandur/modulr/parallel"
+	"github.com/brandur/modulir/log"
+	"github.com/brandur/modulir/parallel"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -33,7 +33,7 @@ type Context struct {
 	FirstRun bool
 
 	// Jobs is a channel over which jobs to be done are transmitted.
-	Jobs chan parallel.Job
+	Jobs chan *parallel.Job
 
 	// Log is a logger that can be used to print information.
 	Log log.LoggerInterface
@@ -96,7 +96,7 @@ func NewContext(args *Args) *Context {
 
 // AddJob is a shortcut for adding a new job to the Jobs channel.
 func (c *Context) AddJob(name string, f func() (bool, error)) {
-	c.Jobs <- parallel.Job {Name: name, F: f}
+	c.Jobs <- parallel.NewJob(name, f)
 }
 
 // AllowError is a helper that's useful for when an error coming back from a
@@ -183,7 +183,7 @@ func (c *Context) StartBuild() {
 //
 // Returns true if the round of jobs all executed successfully, and false
 // otherwise. In the latter case, a work function should return so that the
-// modulr main loop can print the errors that occurred.
+// Modulir main loop can print the errors that occurred.
 //
 // If all jobs were successful, the worker pool is restarted so that more jobs
 // can be queued. If it wasn't, the jobs channel will be closed, and trying to

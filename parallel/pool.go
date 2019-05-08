@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/brandur/modulr/log"
+	"github.com/brandur/modulir/log"
 )
 
 // Job is a wrapper for a piece of work that should be executed by the job
@@ -16,11 +16,15 @@ type Job struct {
 	Name string
 }
 
+func NewJob(name string, f func() (bool, error)) *Job {
+	return &Job {Name: name, F: f}
+}
+
 // Pool is a worker group that runs a number of jobs at a configured
 // concurrency.
 type Pool struct {
 	Errors []error
-	JobsChan chan Job
+	JobsChan chan *Job
 
 	// JobsExecuted is a slice of jobs that were executed on the last run.
 	JobsExecuted []*Job
@@ -43,7 +47,7 @@ type Pool struct {
 	concurrency int
 
 	errorsMu sync.Mutex
-	jobsChanInternal chan Job
+	jobsChanInternal chan *Job
 	jobsExecutedMu sync.Mutex
 	jobsFeederDone chan bool
 	log log.LoggerInterface
@@ -65,11 +69,11 @@ func (p *Pool) Run() {
 	p.log.Debugf("Running job pool at concurrency %v", p.concurrency)
 
 	p.Errors = nil
-	p.JobsChan = make(chan Job, 500)
+	p.JobsChan = make(chan *Job, 500)
 	p.JobsExecuted = nil
 	p.NumJobs = 0
 	p.NumJobsExecuted = 0
-	p.jobsChanInternal = make(chan Job, 500)
+	p.jobsChanInternal = make(chan *Job, 500)
 	p.jobsFeederDone = make(chan bool)
 	p.running = true
 
@@ -147,7 +151,7 @@ func (p *Pool) work() {
 			atomic.AddInt64(&p.NumJobsExecuted, 1)
 			
 			p.jobsExecutedMu.Lock()
-			p.JobsExecuted = append(p.JobsExecuted, &job)
+			p.JobsExecuted = append(p.JobsExecuted, job)
 			p.jobsExecutedMu.Unlock()
 		}
 
