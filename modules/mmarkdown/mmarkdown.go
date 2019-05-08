@@ -32,4 +32,3 @@ func RenderFile(c *context.Context, source, target string) (bool, error) {
 	c.Log.Debugf("mmarkdown: Rendered '%s' to '%s'", source, target)
 	return changed, nil
 }
-

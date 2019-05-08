@@ -108,7 +108,6 @@ func (c *Context) AllowError(executed bool, err error) bool {
 	return executed
 }
 
-
 // Changed returns whether the target path's modified time has changed since
 // the last time it was checked. It also saves the last modified time for
 // future checks.
@@ -136,7 +135,7 @@ func (c *Context) Changed(path string) bool {
 
 // ChangedAny is the same as Changed except it returns true if any of the given
 // paths have changed.
-func (c *Context) ChangedAny(paths... string) bool {
+func (c *Context) ChangedAny(paths ...string) bool {
 	// We have to run through every element in paths even if we detect changed
 	// early so that each is correctly added to the file mod time cache and
 	// watched.
@@ -276,17 +275,17 @@ func (c *Context) exists(path string) bool {
 // FileModTimeCache tracks the last modified time of files seen so a
 // determination can be made as to whether they need to be recompiled.
 type FileModTimeCache struct {
-	log              log.LoggerInterface
-	mu               sync.Mutex
-	pathToModTimeMap map[string]time.Time
+	log                 log.LoggerInterface
+	mu                  sync.Mutex
+	pathToModTimeMap    map[string]time.Time
 	pathToModTimeMapNew map[string]time.Time
 }
 
 // NewFileModTimeCache returns a new FileModTimeCache.
 func NewFileModTimeCache(log log.LoggerInterface) *FileModTimeCache {
 	return &FileModTimeCache{
-		log:              log,
-		pathToModTimeMap: make(map[string]time.Time),
+		log:                 log,
+		pathToModTimeMap:    make(map[string]time.Time),
 		pathToModTimeMapNew: make(map[string]time.Time),
 	}
 }
@@ -338,7 +337,7 @@ func (c *FileModTimeCache) promote() {
 
 	// Promote all new values to the current map.
 	for path, modTime := range c.pathToModTimeMapNew {
-		c.pathToModTimeMap[path] = modTime	
+		c.pathToModTimeMap[path] = modTime
 	}
 
 	// Clear the new map for the next round.

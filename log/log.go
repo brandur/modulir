@@ -103,4 +103,3 @@ type LoggerInterface interface {
 	// Warnf logs a warning message using Printf conventions.
 	Warnf(format string, v ...interface{})
 }
-

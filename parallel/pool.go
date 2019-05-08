@@ -12,18 +12,18 @@ import (
 // pool.
 type Job struct {
 	Duration time.Duration
-	F func() (bool, error)
-	Name string
+	F        func() (bool, error)
+	Name     string
 }
 
 func NewJob(name string, f func() (bool, error)) *Job {
-	return &Job {Name: name, F: f}
+	return &Job{Name: name, F: f}
 }
 
 // Pool is a worker group that runs a number of jobs at a configured
 // concurrency.
 type Pool struct {
-	Errors []error
+	Errors   []error
 	JobsChan chan *Job
 
 	// JobsExecuted is a slice of jobs that were executed on the last run.
@@ -46,13 +46,13 @@ type Pool struct {
 
 	concurrency int
 
-	errorsMu sync.Mutex
+	errorsMu         sync.Mutex
 	jobsChanInternal chan *Job
-	jobsExecutedMu sync.Mutex
-	jobsFeederDone chan bool
-	log log.LoggerInterface
-	running bool
-	wg          sync.WaitGroup
+	jobsExecutedMu   sync.Mutex
+	jobsFeederDone   chan bool
+	log              log.LoggerInterface
+	running          bool
+	wg               sync.WaitGroup
 }
 
 // NewPool initializes a new pool with the given jobs and at the given
@@ -60,7 +60,7 @@ type Pool struct {
 func NewPool(log log.LoggerInterface, concurrency int) *Pool {
 	return &Pool{
 		concurrency: concurrency,
-		log: log,
+		log:         log,
 	}
 }
 
@@ -113,7 +113,7 @@ func (p *Pool) Wait() bool {
 
 	// Now wait for the job feeder to be finished so that we know all jobs have
 	// been enqueued in jobsChanInternal.
-	<- p.jobsFeederDone
+	<-p.jobsFeederDone
 
 	p.log.Debugf("pool: Waiting for %v job(s) to be done", p.NumJobs)
 
@@ -149,7 +149,7 @@ func (p *Pool) work() {
 		atomic.AddInt64(&p.NumJobs, 1)
 		if executed {
 			atomic.AddInt64(&p.NumJobsExecuted, 1)
-			
+
 			p.jobsExecutedMu.Lock()
 			p.JobsExecuted = append(p.JobsExecuted, job)
 			p.jobsExecutedMu.Unlock()

@@ -41,11 +41,11 @@ func TestBuildTree_Complex(t *testing.T) {
 	})
 
 	/*
-	if testing.Verbose() {
-		str, err := renderTree(node)
-		assert.NoError(t, err)
-		log.Debugf("tree = %+v", str)
-	}
+		if testing.Verbose() {
+			str, err := renderTree(node)
+			assert.NoError(t, err)
+			log.Debugf("tree = %+v", str)
+		}
 	*/
 
 	assert.Equal(t, "ol", node.Data)
