@@ -1,4 +1,4 @@
-# Modulir
+# Modulir [![Build Status](https://travis-ci.org/brandur/modulir.svg?branch=master)](https://travis-ci.org/brandur/modulir)
 
 Modulir is an experimental mini-framework for static site
 generation that suggests that a site's main build recipe
