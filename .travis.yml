@@ -17,6 +17,7 @@ before_install:
   - travis_retry go get -u github.com/pkg/errors
   - travis_retry go get -u github.com/yosssi/ace
   - travis_retry go get -u golang.org/x/lint/golint
+  - travis_retry go get -u golang.org/x/net/html
   - travis_retry go get -u gopkg.in/russross/blackfriday.v2
   - travis_retry go get -u gopkg.in/yaml.v2
 
