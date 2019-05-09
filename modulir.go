@@ -1,6 +1,7 @@
 package modulir
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/brandur/modulir/log"
 	"github.com/brandur/modulir/parallel"
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -83,7 +85,7 @@ func BuildLoop(config *Config, f func(*context.Context) error) {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		config.Log.Errorf("Error starting watcher: %v", err)
+		exitWithError(errors.Wrap(err, "Error starting watcher"))
 		os.Exit(1)
 	}
 	defer watcher.Close()
@@ -92,7 +94,9 @@ func BuildLoop(config *Config, f func(*context.Context) error) {
 
 	go func() {
 		<-firstRunComplete
-		serveHTTP(c)
+		if err := serveTargetDirHTTP(c); err != nil {
+			exitWithError(err)
+		}
 	}()
 
 	build(c, f, finish, firstRunComplete)
@@ -180,6 +184,11 @@ func build(c *context.Context, f func(*context.Context) error, finish, firstRunC
 			c.Log.Infof("Detected change; rebuilding")
 		}
 	}
+}
+
+func exitWithError(err error) {
+	fmt.Fprintf(os.Stderr, "error: %v\n", err)
+	os.Exit(1)
 }
 
 func initConfigDefaults(config *Config) *Config {

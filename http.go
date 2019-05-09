@@ -3,10 +3,10 @@ package modulir
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"path"
 
 	"github.com/brandur/modulir/context"
+	"github.com/pkg/errors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -19,14 +19,15 @@ import (
 //
 //////////////////////////////////////////////////////////////////////////////
 
-func serveHTTP(c *context.Context) {
-	c.Log.Infof("Serving '%s' on port %v", path.Clean(c.TargetDir), c.Port)
-	c.Log.Infof("Open browser to: http://localhost:%v/", c.Port)
+func serveTargetDirHTTP(c *context.Context) error {
+	c.Log.Infof("Serving '%s' to: http://localhost:%v/", path.Clean(c.TargetDir), c.Port)
+
 	handler := http.FileServer(http.Dir(c.TargetDir))
+
 	err := http.ListenAndServe(fmt.Sprintf(":%v", c.Port), handler)
 	if err != nil {
-		c.Log.Errorf("Error starting server: %v", err)
-		os.Exit(1)
+		return errors.Wrap(err, "Error starting HTTP server")
 	}
+	return nil
 }
 
