@@ -76,10 +76,9 @@ type Context struct {
 
 // NewContext initializes and returns a new Context.
 func NewContext(args *Args) *Context {
-	return &Context{
+	c := &Context{
 		Concurrency: args.Concurrency,
 		FirstRun:    true,
-		Jobs:        args.Pool.JobsChan,
 		Log:         args.Log,
 		Port:        args.Port,
 		SourceDir:   args.SourceDir,
@@ -92,6 +91,12 @@ func NewContext(args *Args) *Context {
 		pool:             args.Pool,
 		watchedPaths:     make(map[string]struct{}),
 	}
+
+	if args.Pool != nil {
+		c.Jobs = args.Pool.JobsChan
+	}
+
+	return c
 }
 
 // AddJob is a shortcut for adding a new job to the Jobs channel.
