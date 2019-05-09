@@ -1,6 +1,7 @@
 package modulir
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/brandur/modulir/log"
 	"github.com/brandur/modulir/parallel"
 	"github.com/fsnotify/fsnotify"
+	"github.com/rcrowley/goagain"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -62,14 +64,14 @@ type Job = parallel.Job
 // Build is one of the main entry points to the program. Call this to build
 // only one time.
 func Build(config *Config, f func(*context.Context) error) {
+	// Note: non-blocking so that we can signal into the channel immediately.
 	finish := make(chan struct{}, 1)
-	firstRunComplete := make(chan struct{}, 1)
 
 	// Signal the build loop to finish immediately
 	finish <- struct{}{}
 
 	c := initContext(config, nil)
-	success := build(c, f, finish, firstRunComplete)
+	success := build(c, f, finish)
 	if !success {
 		os.Exit(1)
 	}
@@ -78,8 +80,9 @@ func Build(config *Config, f func(*context.Context) error) {
 // BuildLoop is one of the main entry points to the program. Call this to build
 // in a perpetual loop.
 func BuildLoop(config *Config, f func(*context.Context) error) {
-	finish := make(chan struct{}, 1)
-	firstRunComplete := make(chan struct{}, 1)
+	// Note: blocking to allow us to wait for the build loop to exit
+	// gracefully.
+	finish := make(chan struct{})
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -90,12 +93,25 @@ func BuildLoop(config *Config, f func(*context.Context) error) {
 
 	c := initContext(config, watcher)
 
+	// Inherit a `net.Listener` from our parent process or listen anew
+	listener, err := getGoagainListener(c)
+	if err != nil {
+		exitWithError(err)
+	}
+
 	go func() {
-		<-firstRunComplete
-		serveHTTP(c)
+		if err := serveTargetDirHTTP(c, listener); err != nil {
+			exitWithError(err)
+		}
 	}()
 
-	build(c, f, finish, firstRunComplete)
+	go build(c, f, finish)
+
+	if _, err := goagain.Wait(listener); err != nil {
+		exitWithError(err)
+	}
+
+	finish <- struct{}{}
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -112,7 +128,7 @@ func BuildLoop(config *Config, f func(*context.Context) error) {
 // channel.
 //
 // Returns true of the last build was successful and false otherwise.
-func build(c *context.Context, f func(*context.Context) error, finish, firstRunComplete chan struct{}) bool {
+func build(c *context.Context, f func(*context.Context) error, finish chan struct{}) bool {
 	rebuild := make(chan struct{})
 	rebuildDone := make(chan struct{})
 
@@ -165,7 +181,6 @@ func build(c *context.Context, f func(*context.Context) error, finish, firstRunC
 			buildDuration, c.Stats.NumJobsExecuted, c.Stats.NumJobs, c.Stats.LoopDuration)
 
 		if c.FirstRun {
-			firstRunComplete <- struct{}{}
 			c.FirstRun = false
 		} else {
 			rebuildDone <- struct{}{}
@@ -180,6 +195,11 @@ func build(c *context.Context, f func(*context.Context) error, finish, firstRunC
 			c.Log.Infof("Detected change; rebuilding")
 		}
 	}
+}
+
+func exitWithError(err error) {
+	fmt.Fprintf(os.Stderr, "%v\n", err)
+	os.Exit(1)
 }
 
 func initConfigDefaults(config *Config) *Config {
