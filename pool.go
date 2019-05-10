@@ -63,12 +63,15 @@ type Pool struct {
 }
 
 // NewPool initializes a new pool with the given jobs and at the given
-// concurrency.
+// concurrency. It calls Init so that the pool is fully spun up and ready to
+// start a round.
 func NewPool(log LoggerInterface, concurrency int) *Pool {
-	return &Pool{
+	pool := &Pool{
 		concurrency: concurrency,
 		log:         log,
 	}
+	pool.Init()
+	return pool
 }
 
 // Init initializes the pool by preparing state and spinning up Goroutines. It
