@@ -68,7 +68,7 @@ type LoggerInterface = log.LoggerInterface
 
 // Build is one of the main entry points to the program. Call this to build
 // only one time.
-func Build(config *Config, f func(*context.Context) error) {
+func Build(config *Config, f func(*context.Context) []error) {
 	finish := make(chan struct{}, 1)
 	firstRunComplete := make(chan struct{}, 1)
 
@@ -84,7 +84,7 @@ func Build(config *Config, f func(*context.Context) error) {
 
 // BuildLoop is one of the main entry points to the program. Call this to build
 // in a perpetual loop.
-func BuildLoop(config *Config, f func(*context.Context) error) {
+func BuildLoop(config *Config, f func(*context.Context) []error) {
 	finish := make(chan struct{}, 1)
 	firstRunComplete := make(chan struct{}, 1)
 
@@ -121,7 +121,7 @@ func BuildLoop(config *Config, f func(*context.Context) error) {
 // channel.
 //
 // Returns true of the last build was successful and false otherwise.
-func build(c *context.Context, f func(*context.Context) error, finish, firstRunComplete chan struct{}) bool {
+func build(c *context.Context, f func(*context.Context) []error, finish, firstRunComplete chan struct{}) bool {
 	rebuild := make(chan struct{})
 	rebuildDone := make(chan struct{})
 
@@ -137,13 +137,13 @@ func build(c *context.Context, f func(*context.Context) error, finish, firstRunC
 		c.Log.Debugf("Start loop")
 		c.ResetBuild()
 
-		err := f(c)
+		errors := f(c)
 
-		errors := c.Wait()
+		otherErrors := c.Wait()
 		buildDuration := time.Now().Sub(c.Stats.Start)
 
-		if err != nil {
-			errors = append([]error{err}, errors...)
+		if otherErrors != nil {
+			errors = append(errors, otherErrors...)
 		}
 
 		if errors != nil {
