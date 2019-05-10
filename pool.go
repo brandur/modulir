@@ -34,7 +34,6 @@ func NewJob(name string, f func() (bool, error)) *Job {
 // Pool is a worker group that runs a number of jobs at a configured
 // concurrency.
 type Pool struct {
-	Errors []error
 	Jobs   chan *Job
 
 	// JobsAll is a slice of all the jobs that were fed into the pool on the
@@ -155,9 +154,9 @@ func (p *Pool) StartRound() {
 		panic("StartRound already called (call Wait before calling it again)")
 	}
 
-	p.Errors = nil
 	p.Jobs = make(chan *Job, 500)
 	p.JobsAll = nil
+	p.JobsErrored = nil
 	p.JobsExecuted = nil
 	p.jobsFeederDone = make(chan struct{})
 	p.jobsInternal = make(chan *Job, 500)
@@ -202,7 +201,7 @@ func (p *Pool) Wait() bool {
 	// wait on the run gate.
 	close (p.jobsInternal)
 
-	if p.Errors != nil {
+	if p.JobsErrored != nil {
 		return false
 	}
 	return true

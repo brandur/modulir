@@ -15,10 +15,10 @@ func TestEmptyPool(t *testing.T) {
 	p.StartRound()
 	p.Wait()
 
-	assert.Equal(t, []error(nil), p.Errors)
 	assert.Equal(t, 0, len(p.JobsAll))
 	assert.Equal(t, 0, len(p.JobsErrored))
 	assert.Equal(t, 0, len(p.JobsExecuted))
+	assert.Equal(t, []error(nil), p.JobErrors())
 }
 
 func TestWithWork(t *testing.T) {
