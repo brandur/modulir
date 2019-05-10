@@ -203,7 +203,7 @@ func (c *Context) Wait() []error {
 	c.Pool.Wait()
 
 	c.Stats.JobsExecuted = append(c.Stats.JobsExecuted, c.Pool.JobsExecuted...)
-	c.Stats.NumJobs += c.Pool.NumJobs
+	c.Stats.NumJobs += len(c.Pool.JobsAll)
 	c.Stats.NumJobsExecuted += len(c.Pool.JobsExecuted)
 
 	errors := c.Pool.Errors
@@ -357,7 +357,7 @@ type Stats struct {
 	LoopDuration time.Duration
 
 	// NumJobs is the total number of jobs generated for the build loop.
-	NumJobs int64
+	NumJobs int
 
 	// NumJobsExecuted is the number of jobs that did some kind of heavier
 	// lifting during the build loop. That's those that returned `true` on

@@ -2,7 +2,6 @@ package modulir
 
 import (
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -24,15 +23,12 @@ type Pool struct {
 	Errors []error
 	Jobs   chan *Job
 
+	// JobsAll is a slice of all the jobs that were fed into the pool on the
+	// last run.
+	JobsAll []*Job
+
 	// JobsExecuted is a slice of jobs that were executed on the last run.
 	JobsExecuted []*Job
-
-	// NumJobs is the number of jobs that went through a work iteration of the
-	// pool.
-	//
-	// This number is not accurate until Wait has finished fully. It's reset
-	// when Run is called.
-	NumJobs int64
 
 	concurrency    int
 	errorsMu       sync.Mutex
@@ -97,9 +93,9 @@ func (p *Pool) Init() {
 			}
 
 			for job := range p.Jobs {
-				atomic.AddInt64(&p.NumJobs, 1)
 				p.wg.Add(1)
 				p.jobsInternal <- job
+				p.JobsAll = append(p.JobsAll, job)
 			}
 
 			// Runs after Jobs has been closed.
@@ -127,8 +123,8 @@ func (p *Pool) StartRound() {
 
 	p.Errors = nil
 	p.Jobs = make(chan *Job, 500)
+	p.JobsAll = nil
 	p.JobsExecuted = nil
-	p.NumJobs = 0
 	p.jobsFeederDone = make(chan struct{})
 	p.jobsInternal = make(chan *Job, 500)
 	p.roundStarted = true
@@ -163,7 +159,7 @@ func (p *Pool) Wait() bool {
 	// been enqueued in jobsInternal.
 	<-p.jobsFeederDone
 
-	p.log.Debugf("pool: Waiting for %v job(s) to be done", p.NumJobs)
+	p.log.Debugf("pool: Waiting for %v job(s) to be done", len(p.JobsAll))
 
 	// Now wait for all those jobs to be done.
 	p.wg.Wait()

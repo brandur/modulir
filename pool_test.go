@@ -31,7 +31,7 @@ func TestWithWork(t *testing.T) {
 	p.Wait()
 
 	assert.Equal(t, []error(nil), p.Errors)
-	assert.Equal(t, int64(3), p.NumJobs)
+	assert.Equal(t, 3, len(p.JobsAll))
 	assert.Equal(t, 2, len(p.JobsExecuted)) // Number of `return true` above
 }
 
@@ -48,6 +48,6 @@ func TestWithError(t *testing.T) {
 	p.Wait()
 
 	assert.Equal(t, []error{fmt.Errorf("error")}, p.Errors)
-	assert.Equal(t, int64(3), p.NumJobs)
+	assert.Equal(t, 3, len(p.JobsAll))
 	assert.Equal(t, 3, len(p.JobsExecuted)) // Number of `return true` above
 }
