@@ -41,12 +41,18 @@ type Pool struct {
 	// last run.
 	JobsAll []*Job
 
+	// JobsErrored is a slice of jobs that errored on the last run.
+	//
+	// See also JobErrors which is a shortcut for extracting all the errors
+	// from the jobs.
+	JobsErrored []*Job
+
 	// JobsExecuted is a slice of jobs that were executed on the last run.
 	JobsExecuted []*Job
 
 	concurrency    int
-	errorsMu       sync.Mutex
 	jobsInternal   chan *Job
+	jobsErroredMu  sync.Mutex
 	jobsExecutedMu sync.Mutex
 	jobsFeederDone chan struct{}
 	log            LoggerInterface
@@ -118,6 +124,20 @@ func (p *Pool) Init() {
 	}()
 
 	wg.Wait()
+}
+
+// JobErrors is a shortcut from extracting all the errors out of JobsErrored,
+// the set of jobs that errored on the last round.
+func (p *Pool) JobErrors() []error {
+	if len(p.JobsErrored) < 1 {
+		return nil
+	}
+
+	errs := make([]error, len(p.JobsErrored))
+	for i, job := range p.JobsErrored {
+		errs[i] = job.Error
+	}
+	return errs
 }
 
 func (p *Pool) Stop() {
@@ -202,9 +222,9 @@ func (p *Pool) workForRound() {
 		if err != nil {
 			job.Error = err
 
-			p.errorsMu.Lock()
-			p.Errors = append(p.Errors, err)
-			p.errorsMu.Unlock()
+			p.jobsErroredMu.Lock()
+			p.JobsErrored = append(p.JobsErrored, job)
+			p.jobsErroredMu.Unlock()
 		}
 
 		if executed {

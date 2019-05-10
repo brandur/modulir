@@ -17,6 +17,7 @@ func TestEmptyPool(t *testing.T) {
 
 	assert.Equal(t, []error(nil), p.Errors)
 	assert.Equal(t, 0, len(p.JobsAll))
+	assert.Equal(t, 0, len(p.JobsErrored))
 	assert.Equal(t, 0, len(p.JobsExecuted))
 }
 
@@ -36,9 +37,10 @@ func TestWithWork(t *testing.T) {
 	p.Wait()
 
 	// Check state on the pool
-	assert.Equal(t, []error(nil), p.Errors)
 	assert.Equal(t, 3, len(p.JobsAll))
+	assert.Equal(t, 0, len(p.JobsErrored))
 	assert.Equal(t, 2, len(p.JobsExecuted)) // Number of `return true` above
+	assert.Equal(t, []error(nil), p.JobErrors())
 
 	// Check state on individual jobs
 	assert.Equal(t, true, j0.Executed)
@@ -51,7 +53,6 @@ func TestWithWork(t *testing.T) {
 
 func TestWithError(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 10)
-	fmt.Printf("init\n")
 	p.Init()
 	defer p.Stop()
 
@@ -65,9 +66,10 @@ func TestWithError(t *testing.T) {
 	p.Wait()
 
 	// Check state on the pool
-	assert.Equal(t, []error{fmt.Errorf("error")}, p.Errors)
 	assert.Equal(t, 3, len(p.JobsAll))
+	assert.Equal(t, 1, len(p.JobsErrored))
 	assert.Equal(t, 3, len(p.JobsExecuted)) // Number of `return true` above
+	assert.Equal(t, []error{fmt.Errorf("error")}, p.JobErrors())
 
 	// Check state on individual jobs
 	assert.Equal(t, true, j0.Executed)
