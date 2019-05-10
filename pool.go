@@ -46,7 +46,7 @@ type Pool struct {
 	errorsMu       sync.Mutex
 	jobsInternal   chan *Job
 	jobsExecutedMu sync.Mutex
-	jobsFeederDone chan bool
+	jobsFeederDone chan struct{}
 	log            LoggerInterface
 	roundStarted   bool
 	runGate        chan struct{}
@@ -89,7 +89,7 @@ func (p *Pool) Init() {
 			}
 
 			// Runs after Jobs has been closed.
-			p.jobsFeederDone <- true
+			p.jobsFeederDone <- struct{}{}
 		}
 	}()
 }
@@ -106,7 +106,7 @@ func (p *Pool) StartRound() {
 	p.JobsExecuted = nil
 	p.NumJobs = 0
 	p.NumJobsExecuted = 0
-	p.jobsFeederDone = make(chan bool)
+	p.jobsFeederDone = make(chan struct{})
 	p.jobsInternal = make(chan *Job, 500)
 	p.roundStarted = true
 
