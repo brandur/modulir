@@ -142,9 +142,14 @@ func build(c *Context, f func(*Context) []error, finish, firstRunComplete chan s
 			}
 		}
 
-		c.Log.Infof("Jobs executed (slowest first):")
 		sortJobsBySlowest(c.Stats.JobsExecuted)
 		for i, job := range c.Stats.JobsExecuted {
+			// Having this in the loop ensures we don't print it if zero jobs
+			// executed
+			if i == 0 {
+				c.Log.Infof("Jobs executed (slowest first):")
+			}
+
 			c.Log.Infof("    %s (time: %v)", job.Name, job.Duration)
 
 			if i >= 9 {
