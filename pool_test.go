@@ -9,8 +9,10 @@ import (
 
 func TestEmptyPool(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 10)
-	p.Run()
+	p.Init()
+	defer p.Stop()
 
+	p.StartRound()
 	p.Wait()
 
 	assert.Equal(t, []error(nil), p.Errors)
@@ -18,28 +20,34 @@ func TestEmptyPool(t *testing.T) {
 
 func TestWithWork(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 10)
-	p.Run()
+	fmt.Printf("init\n")
+	p.Init()
+	defer p.Stop()
 
-	p.JobsChan <- NewJob("job 0", func() (bool, error) { return true, nil })
-	p.JobsChan <- NewJob("job 1", func() (bool, error) { return true, nil })
-	p.JobsChan <- NewJob("job 2", func() (bool, error) { return false, nil })
+	p.StartRound()
+	p.Jobs <- NewJob("job 0", func() (bool, error) { return true, nil })
+	p.Jobs <- NewJob("job 1", func() (bool, error) { return true, nil })
+	p.Jobs <- NewJob("job 2", func() (bool, error) { return false, nil })
 	p.Wait()
 
 	assert.Equal(t, []error(nil), p.Errors)
 	assert.Equal(t, int64(3), p.NumJobs)
-	assert.Equal(t, int64(2), p.NumJobsExecuted) // Number of `return true` above
+	assert.Equal(t, 2, len(p.JobsExecuted)) // Number of `return true` above
 }
 
 func TestWithError(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 10)
-	p.Run()
+	fmt.Printf("init\n")
+	p.Init()
+	defer p.Stop()
 
-	p.JobsChan <- NewJob("job 0", func() (bool, error) { return true, nil })
-	p.JobsChan <- NewJob("job 1", func() (bool, error) { return true, nil })
-	p.JobsChan <- NewJob("job 2", func() (bool, error) { return true, fmt.Errorf("error") })
+	p.StartRound()
+	p.Jobs <- NewJob("job 0", func() (bool, error) { return true, nil })
+	p.Jobs <- NewJob("job 1", func() (bool, error) { return true, nil })
+	p.Jobs <- NewJob("job 2", func() (bool, error) { return true, fmt.Errorf("error") })
 	p.Wait()
 
 	assert.Equal(t, []error{fmt.Errorf("error")}, p.Errors)
 	assert.Equal(t, int64(3), p.NumJobs)
-	assert.Equal(t, int64(3), p.NumJobsExecuted) // Number of `return true` above
+	assert.Equal(t, 3, len(p.JobsExecuted)) // Number of `return true` above
 }

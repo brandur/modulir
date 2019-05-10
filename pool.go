@@ -34,14 +34,6 @@ type Pool struct {
 	// when Run is called.
 	NumJobs int64
 
-	// NumJobsExecuted is the number of jobs that did some kind of heavier
-	// lifting during the build loop. That's those that returned `true` on
-	// execution.
-	//
-	// This number is not accurate until Wait has finished fully. It's reset
-	// when Run is called.
-	NumJobsExecuted int64
-
 	concurrency    int
 	errorsMu       sync.Mutex
 	jobsInternal   chan *Job
@@ -50,6 +42,7 @@ type Pool struct {
 	log            LoggerInterface
 	roundStarted   bool
 	runGate        chan struct{}
+	stop           chan struct{}
 	wg             sync.WaitGroup
 }
 
@@ -65,22 +58,43 @@ func NewPool(log LoggerInterface, concurrency int) *Pool {
 func (p *Pool) Init() {
 	p.log.Debugf("Initializing job pool at concurrency %v", p.concurrency)
 	p.runGate = make(chan struct{})
+	p.stop = make(chan struct{})
+
+	// Allows us to block this function until all Goroutines have successfully
+	// spun up.
+	//
+	// There's a potential race condition when StartRound is called very
+	// quickly after Init and can close runGate before the Goroutines below
+	// have a chance to start selecting on it.
+	var wg sync.WaitGroup
 
 	// Worker Goroutines
+	wg.Add(p.concurrency)
 	for i := 0; i < p.concurrency; i++ {
+		wg.Done()
 		go func() {
-			<-p.runGate
-
 			for {
+				select {
+				case <-p.runGate:
+				case <-p.stop:
+					break
+				}
+
 				p.workForRound()
 			}
 		}()
 	}
 
 	// Job feeder
+	wg.Add(1)
 	go func() {
+		wg.Done()
 		for {
-			<-p.runGate
+			select {
+			case <-p.runGate:
+			case <-p.stop:
+				break
+			}
 
 			for job := range p.Jobs {
 				atomic.AddInt64(&p.NumJobs, 1)
@@ -92,6 +106,16 @@ func (p *Pool) Init() {
 			p.jobsFeederDone <- struct{}{}
 		}
 	}()
+
+	wg.Wait()
+}
+
+func (p *Pool) Stop() {
+	if p.roundStarted {
+		panic("Stop should only be called after round has ended (hint: try calling Wait)")
+	}
+
+	p.stop <- struct{}{}
 }
 
 // StartRound begins an execution round. Internal statistics and other tracking
@@ -105,7 +129,6 @@ func (p *Pool) StartRound() {
 	p.Jobs = make(chan *Job, 500)
 	p.JobsExecuted = nil
 	p.NumJobs = 0
-	p.NumJobsExecuted = 0
 	p.jobsFeederDone = make(chan struct{})
 	p.jobsInternal = make(chan *Job, 500)
 	p.roundStarted = true
@@ -173,8 +196,6 @@ func (p *Pool) workForRound() {
 		}
 
 		if executed {
-			atomic.AddInt64(&p.NumJobsExecuted, 1)
-
 			p.jobsExecutedMu.Lock()
 			p.JobsExecuted = append(p.JobsExecuted, job)
 			p.jobsExecutedMu.Unlock()
