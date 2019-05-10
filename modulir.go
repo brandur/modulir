@@ -61,6 +61,11 @@ type Context = context.Context
 // pool.
 type Job = parallel.Job
 
+// LoggerInterface is an interface that should be implemented by loggers used
+// with the library. Logger provides a basic implementation, but it's also
+// compatible with libraries such as Logrus.
+type LoggerInterface = log.LoggerInterface
+
 // Build is one of the main entry points to the program. Call this to build
 // only one time.
 func Build(config *Config, f func(*context.Context) error) {
