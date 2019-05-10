@@ -8,11 +8,25 @@ import (
 // Job is a wrapper for a piece of work that should be executed by the job
 // pool.
 type Job struct {
+	// Duration is the time it took the job to run. It's set regardless of
+	// whether the job's finished state was executed, not executed, or errored.
 	Duration time.Duration
-	F        func() (bool, error)
+
+	// Error is an error that the job produced, if any.
+	Error error
+
+	// Executed is whether the job "did work", signaled by it returning true.
+	Executed bool
+
+	// F is the function which makes up the job's workload.
+	F func() (bool, error)
+
+	// Name is a name for the job which is helpful for informational and
+	// debugging purposes.
 	Name     string
 }
 
+// NewJob initializes and returns a new Job.
 func NewJob(name string, f func() (bool, error)) *Job {
 	return &Job{Name: name, F: f}
 }
@@ -186,12 +200,16 @@ func (p *Pool) workForRound() {
 		job.Duration = time.Now().Sub(start)
 
 		if err != nil {
+			job.Error = err
+
 			p.errorsMu.Lock()
 			p.Errors = append(p.Errors, err)
 			p.errorsMu.Unlock()
 		}
 
 		if executed {
+			job.Executed = true
+
 			p.jobsExecutedMu.Lock()
 			p.JobsExecuted = append(p.JobsExecuted, job)
 			p.jobsExecutedMu.Unlock()
