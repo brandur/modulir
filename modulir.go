@@ -129,19 +129,19 @@ func build(c *context.Context, f func(*context.Context) error, finish, firstRunC
 		go watchChanges(c, c.Watcher, rebuild, rebuildDone)
 	}
 
+	c.Pool.Init()
+	c.Pool.StartRound()
+	c.Jobs = c.Pool.Jobs
+
 	for {
 		c.Log.Debugf("Start loop")
 		c.ResetBuild()
 
-		c.Pool.Run()
-		c.Jobs = c.Pool.JobsChan
-
 		err := f(c)
 
-		c.Wait()
+		errors := c.Wait()
 		buildDuration := time.Now().Sub(c.Stats.Start)
 
-		errors := c.Pool.Errors
 		if err != nil {
 			errors = append([]error{err}, errors...)
 		}
