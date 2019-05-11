@@ -8,11 +8,11 @@ import (
 	"os/signal"
 	"sort"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -98,12 +98,12 @@ func BuildLoop(config *Config, f func(*Context) []error) {
 
 	// Listen for signals
 	signals := make(chan os.Signal, 1024)
-	signal.Notify(signals, syscall.SIGUSR2)
+	signal.Notify(signals, unix.SIGUSR2)
 	for {
 		s := <-signals
 		switch s {
-			case syscall.SIGUSR2:
-				shutdownAndExec(c, finish, watcher, server)
+		case unix.SIGUSR2:
+			shutdownAndExec(c, finish, watcher, server)
 		}
 	}
 }
@@ -149,7 +149,7 @@ func build(c *Context, f func(*Context) []error, finish, firstRunComplete chan s
 		c.ResetBuild()
 
 		if lastChangedPath != "" {
-			c.QuickPaths = map[string]struct{}{lastChangedPath: struct{}{}}
+			c.QuickPaths = map[string]struct{}{lastChangedPath: {}}
 		}
 
 		errors := f(c)
@@ -184,7 +184,7 @@ func build(c *Context, f func(*Context) []error, finish, firstRunComplete chan s
 			c.Log.Infof("Detected finish signal; stopping")
 			return len(errors) < 1
 
-		case lastChangedPath =<-rebuild:
+		case lastChangedPath = <-rebuild:
 			c.Log.Infof("Detected change on '%s'; rebuilding", lastChangedPath)
 		}
 	}
@@ -244,7 +244,7 @@ func logErrors(c *Context, errors []error) {
 	for i, err := range errors {
 		c.Log.Errorf("Build error: %v", err)
 
-		if i >= maxMessages - 1 {
+		if i >= maxMessages-1 {
 			c.Log.Errorf("... too many errors (limit reached)")
 			break
 		}
@@ -263,7 +263,7 @@ func logSlowestJobs(c *Context) {
 
 		c.Log.Infof("    %s (time: %v)", job.Name, job.Duration)
 
-		if i >= maxMessages - 1 {
+		if i >= maxMessages-1 {
 			c.Log.Infof("... many jobs executed (limit reached)")
 			break
 		}
@@ -317,7 +317,7 @@ func shutdownAndExec(c *Context, finish chan struct{},
 	}
 
 	c.Log.Infof("Execing process '%s' with args %+v\n", execPath, os.Args)
-	if err := syscall.Exec(execPath, os.Args, os.Environ()); err != nil {
+	if err := unix.Exec(execPath, os.Args, os.Environ()); err != nil {
 		exitWithError(err)
 	}
 }
