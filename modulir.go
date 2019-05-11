@@ -70,7 +70,11 @@ func Build(config *Config, f func(*Context) []error) {
 // BuildLoop is one of the main entry points to the program. Call this to build
 // in a perpetual loop.
 func BuildLoop(config *Config, f func(*Context) []error) {
+	// Not currently used for anything, but the idea was to use it for an
+	// in-process restart that occurs when Go files and we're signaled with
+	// USR2.
 	finish := make(chan struct{}, 1)
+
 	firstRunComplete := make(chan struct{}, 1)
 
 	watcher, err := fsnotify.NewWatcher()
