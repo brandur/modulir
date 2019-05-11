@@ -258,7 +258,7 @@ func logSlowestJobs(c *Context) {
 // properties from fsnotify.
 func shouldRebuild(path string, op fsnotify.Op) bool {
 	// A special case, but ignore creates on files that look like Vim backups.
-	if strings.HasSuffix(path, "~") && op&fsnotify.Create == fsnotify.Create {
+	if strings.HasSuffix(path, "~") {
 		return false
 	}
 
