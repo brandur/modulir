@@ -152,17 +152,6 @@ func (c *Context) Changed(path string) bool {
 		return true
 	}
 
-	// Commented out for now because it's not fast (at least a few ms) and we
-	// don't seem to really need an absolute path
-	/*
-		// Normalize the path (Abs also calls Clean).
-		path, err := filepath.Abs(path)
-		if err != nil {
-			c.Log.Errorf("Error normalizing path: %v", err)
-		}
-		}
-	*/
-
 	changed, ok := c.fileModTimeCache.isFileUpdated(fileInfo, path)
 
 	// If we got ok back, then we know the file was in the cache and also
