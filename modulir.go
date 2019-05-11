@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -327,6 +328,28 @@ func sortJobsBySlowest(jobs []*Job) {
 	sort.Slice(jobs, func(i, j int) bool {
 		return jobs[j].Duration < jobs[i].Duration
 	})
+}
+
+func startServingTargetDirHTTP(c *Context) *http.Server {
+	c.Log.Infof("Serving '%s' to: http://localhost:%v/", path.Clean(c.TargetDir), c.Port)
+
+	handler := http.FileServer(http.Dir(c.TargetDir))
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%v", c.Port),
+		Handler: handler,
+	}
+
+	go func() {
+		err := server.ListenAndServe()
+
+		// ListenAndServe always returns a non-nil error
+		if err != http.ErrServerClosed {
+			exitWithError(errors.Wrap(err, "Error starting HTTP server"))
+		}
+	}()
+
+	return server
 }
 
 // Listens for file system changes from fsnotify and pushes relevant ones back
