@@ -102,6 +102,11 @@ func BuildLoop(config *Config, f func(*Context) []error) {
 //
 //////////////////////////////////////////////////////////////////////////////
 
+const (
+	// Maximum number of errors or jobs to print on screen after a build loop.
+	maxMessages = 10
+)
+
 // Runs an infinite built loop until a signal is received over the `finish`
 // channel.
 //
@@ -140,32 +145,8 @@ func build(c *Context, f func(*Context) []error, finish, firstRunComplete chan s
 			errors = append(errors, otherErrors...)
 		}
 
-		if errors != nil {
-			for i, err := range errors {
-				c.Log.Errorf("Build error: %v", err)
-
-				if i >= 9 {
-					c.Log.Errorf("... too many errors (limit reached)")
-					break
-				}
-			}
-		}
-
-		sortJobsBySlowest(c.Stats.JobsExecuted)
-		for i, job := range c.Stats.JobsExecuted {
-			// Having this in the loop ensures we don't print it if zero jobs
-			// executed
-			if i == 0 {
-				c.Log.Infof("Jobs executed (slowest first):")
-			}
-
-			c.Log.Infof("    %s (time: %v)", job.Name, job.Duration)
-
-			if i >= 9 {
-				c.Log.Infof("... many jobs executed (limit reached)")
-				break
-			}
-		}
+		logErrors(c, errors)
+		logSlowestJobs(c)
 
 		c.Log.Infof("Built site in %s (%v / %v job(s) did work; %v errored; loop took %v)",
 			buildDuration,
@@ -237,6 +218,40 @@ func initContext(config *Config, watcher *fsnotify.Watcher) *Context {
 		TargetDir: config.TargetDir,
 		Watcher:   watcher,
 	})
+}
+
+func logErrors(c *Context, errors []error) {
+	if errors == nil {
+		return
+	}
+
+	for i, err := range errors {
+		c.Log.Errorf("Build error: %v", err)
+
+		if i >= maxMessages - 1 {
+			c.Log.Errorf("... too many errors (limit reached)")
+			break
+		}
+	}
+}
+
+func logSlowestJobs(c *Context) {
+	sortJobsBySlowest(c.Stats.JobsExecuted)
+
+	for i, job := range c.Stats.JobsExecuted {
+		// Having this in the loop ensures we don't print it if zero jobs
+		// executed
+		if i == 0 {
+			c.Log.Infof("Jobs executed (slowest first):")
+		}
+
+		c.Log.Infof("    %s (time: %v)", job.Name, job.Duration)
+
+		if i >= maxMessages - 1 {
+			c.Log.Infof("... many jobs executed (limit reached)")
+			break
+		}
+	}
 }
 
 // Decides whether a rebuild should be triggered given some input event
