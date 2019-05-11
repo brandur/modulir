@@ -237,6 +237,7 @@ func initContext(config *Config, watcher *fsnotify.Watcher) *Context {
 	})
 }
 
+// Log a limited set of errors that occurred during a build.
 func logErrors(c *Context, errors []error) {
 	if errors == nil {
 		return
@@ -262,6 +263,7 @@ func logErrors(c *Context, errors []error) {
 	}
 }
 
+// Log a limited set of executed jobs from the last build.
 func logSlowestJobs(c *Context) {
 	sortJobsBySlowest(c.Stats.JobsExecuted)
 
@@ -296,6 +298,13 @@ func shouldRebuild(path string, op fsnotify.Op) bool {
 	return true
 }
 
+// Replaces the current process with a fresh one by invoking the same
+// executable with the operating system's exec syscall. This is prompted by the
+// USR2 signal and is intended to allow the process to refresh itself in the
+// case where it's source files changed and it was recompiled.
+//
+// The fsnotify watcher and HTTP server are shut down as gracefully as possible
+// before the replacement occurs.
 func shutdownAndExec(c *Context, finish chan struct{},
 	watcher *fsnotify.Watcher, server *http.Server) {
 
@@ -340,6 +349,8 @@ func sortJobsBySlowest(jobs []*Job) {
 	})
 }
 
+// Starts serving the built site over HTTP on the configured port. A server
+// instance is returned so that it can be shut down gracefully.
 func startServingTargetDirHTTP(c *Context) *http.Server {
 	c.Log.Infof("Serving '%s' to: http://localhost:%v/", path.Clean(c.TargetDir), c.Port)
 
