@@ -43,6 +43,14 @@ type Context struct {
 	// HTTP.
 	Port int
 
+	// QuickPaths are a set of paths for which Changed will return true when
+	// the context is in "quick rebuild mode". During this time all the normal
+	// file system checks that Changed makes will be bypassed to enable a
+	// faster build loop.
+	//
+	// Make sure to unset it after your build run is finished.
+	QuickPaths map[string]struct{}
+
 	// SourceDir is the directory containing source files.
 	SourceDir string
 
@@ -112,6 +120,12 @@ func (c *Context) AllowError(executed bool, err error) bool {
 // fairly carefully for both speed and lack of contention when running
 // concurrently with other jobs.
 func (c *Context) Changed(path string) bool {
+	// Short circuit quickly if the context is in "quick rebuild mode".
+	if c.QuickPaths != nil {
+		_, ok := c.QuickPaths[path]
+		return ok
+	}
+
 	fileInfo, err := os.Stat(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -176,17 +190,6 @@ func (c *Context) Forced() bool {
 	return c.forced
 }
 
-// ForcedContext returns a copy of the current Context for which change
-// checking is disabled.
-//
-// Functions using a forced context still return the right value for their
-// unchanged return, but execute all their work.
-func (c *Context) ForcedContext() *Context {
-	forceC := c.clone()
-	forceC.forced = true
-	return forceC
-}
-
 // ResetBuild signals to the Context to do the bookkeeping it needs to do for
 // the next build round.
 func (c *Context) ResetBuild() {
@@ -231,6 +234,23 @@ func (c *Context) Wait() []error {
 	return errors
 }
 
+// ForcedContext returns a copy of the current Context for which change
+// checking is disabled.
+//
+// Functions using a forced context still return the right value for their
+// unchanged return, but execute all their work.
+//
+// TODO: Get rid of in favor of Forced property.
+func (c *Context) ForcedContext() *Context {
+	if c.QuickPaths != nil {
+		panic("Don't call ForcedContext on a quick context")
+	}
+
+	forceC := c.clone()
+	forceC.forced = true
+	return forceC
+}
+
 func (c *Context) addWatched(fileInfo os.FileInfo, absolutePath string) error {
 	// Watch the parent directory unless the file is a directory itself. This
 	// will hopefully mean fewer individual entries in the notifier.
@@ -246,6 +266,7 @@ func (c *Context) clone() *Context {
 	return &Context{
 		Concurrency: c.Concurrency,
 		Log:         c.Log,
+		QuickPaths:  c.QuickPaths,
 		SourceDir:   c.SourceDir,
 		Stats:       c.Stats,
 		TargetDir:   c.TargetDir,
