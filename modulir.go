@@ -193,18 +193,21 @@ func build(c *Context, f func(*Context) []error, finish, firstRunComplete chan s
 	}
 }
 
+// Exits with status 1 after printing the given error to stderr.
 func exitWithError(err error) {
 	fmt.Fprintf(os.Stderr, "error: %v\n", err)
 	os.Exit(1)
 }
 
+// Takes a Modulir configuration and initializes it with defaults for any
+// properties that weren't expressly filled in.
 func initConfigDefaults(config *Config) *Config {
 	if config == nil {
 		config = &Config{}
 	}
 
 	if config.Concurrency <= 0 {
-		config.Concurrency = 10
+		config.Concurrency = 50
 	}
 
 	if config.Log == nil {
@@ -222,23 +225,22 @@ func initConfigDefaults(config *Config) *Config {
 	return config
 }
 
+// Initializes a new Modulir context from the given configuration.
 func initContext(config *Config, watcher *fsnotify.Watcher) *Context {
 	config = initConfigDefaults(config)
 
-	pool := NewPool(config.Log, config.Concurrency)
-
-	c := NewContext(&Args{
+	return NewContext(&Args{
 		Log:       config.Log,
 		Port:      config.Port,
-		Pool:      pool,
+		Pool:      NewPool(config.Log, config.Concurrency),
 		SourceDir: config.SourceDir,
 		TargetDir: config.TargetDir,
 		Watcher:   watcher,
 	})
-
-	return c
 }
 
+// Decides whether a rebuild should be triggered given some input event
+// properties from fsnotify.
 func shouldRebuild(path string, op fsnotify.Op) bool {
 	// A special case, but ignore creates on files that look like Vim backups.
 	if strings.HasSuffix(path, "~") && op&fsnotify.Create == fsnotify.Create {
@@ -252,11 +254,19 @@ func shouldRebuild(path string, op fsnotify.Op) bool {
 	return true
 }
 
+// Sorts a slice of jobs with the slowest on top.
 func sortJobsBySlowest(jobs []*Job) {
 	sort.Slice(jobs, func(i, j int) bool {
 		return jobs[j].Duration < jobs[i].Duration
 	})
 }
+
+// Listens for file system changes from fsnotify and pushes relevant ones back
+// out over the rebuild channel.
+//
+// It doesn't start listening to fsnotify again until the main loop has
+// signaled rebuildDone, so there is a possibility that in the case of very
+// fast consecutive changes the build might not be perfectly up to date.
 func watchChanges(c *Context, watcher *fsnotify.Watcher,
 	rebuild chan string, rebuildDone chan struct{}) {
 OUTER:
