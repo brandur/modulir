@@ -102,6 +102,7 @@ func getWebsocketHandler(c *Context, buildComplete *sync.Cond) func(w http.Respo
 
 func getWebsocketJSHandler(c *Context) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript")
 		err := websocketJSTemplate.Execute(w, map[string]interface{}{
 			"Port": c.Port,
 		});
