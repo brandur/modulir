@@ -26,6 +26,7 @@ type Args struct {
 	Pool        *Pool
 	Port        int
 	SourceDir   string
+	StartWebsocket bool
 	TargetDir   string
 	Watcher     *fsnotify.Watcher
 }
@@ -73,6 +74,13 @@ type Context struct {
 	// SourceDir is the directory containing source files.
 	SourceDir string
 
+	// StartWebsocket indicates that Modulir should start a websocket
+	// connection that allows clients to automatically refresh upon the
+	// completion of a build loop.
+	//
+	// Defaults to false.
+	StartWebsocket bool
+
 	// Stats tracks various statistics about the build process.
 	//
 	// Statistics are reset between build loops, but are cumulative between
@@ -99,6 +107,7 @@ func NewContext(args *Args) *Context {
 		Pool:        args.Pool,
 		Port:        args.Port,
 		SourceDir:   args.SourceDir,
+		StartWebsocket: args.StartWebsocket,
 		Stats:       &Stats{},
 		TargetDir:   args.TargetDir,
 		Watcher:     args.Watcher,
