@@ -76,8 +76,14 @@ const (
 	websocketMaxMessageSize = 512
 
 	// The frequency at which to send pings back to clients connected over a
-	// websocket.
-	websocketPingPeriod = 30 * time.Second
+	// websocket. Must be less than websocketPongWait.
+	websocketPingPeriod = (websocketPongWait * 9) / 10
+
+	// Time allowed to read the next pong message from the peer.
+	websocketPongWait = 30 * time.Second
+
+	// Time allowed to write a message to the peer.
+	websocketWriteWait = 10 * time.Second
 )
 
 // A template that will render the websocket JavaScript code that connecting
@@ -132,8 +138,11 @@ func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{
 
 	conn.SetReadLimit(websocketMaxMessageSize)
 
-	//conn.SetReadDeadline(time.Now().Add(pongWait))
-	//conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	conn.SetReadDeadline(time.Now().Add(websocketPongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(websocketPongWait))
+		return nil
+	})
 
 	for {
 		_, _, err := conn.ReadMessage()
@@ -175,6 +184,7 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 	for {
 		select {
 		case <-buildCompleteChan:
+			conn.SetWriteDeadline(time.Now().Add(websocketWriteWait))
 			if err = conn.WriteJSON(websocketEvent{Type: "build_complete"}); err != nil {
 				goto errored
 			}
@@ -183,6 +193,7 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 			goto finished
 
 		case <-ticker.C:
+			conn.SetWriteDeadline(time.Now().Add(websocketWriteWait))
 			if err = conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				goto errored
 			}
