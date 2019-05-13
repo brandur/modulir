@@ -147,7 +147,7 @@ const (
 func build(c *Context, f func(*Context) []error,
 	finish chan struct{}, buildComplete *sync.Cond) bool {
 
-	rebuild := make(chan string)
+	rebuild := make(chan map[string]struct{})
 	rebuildDone := make(chan struct{})
 
 	if c.Watcher != nil {
@@ -157,18 +157,18 @@ func build(c *Context, f func(*Context) []error,
 	c.Pool.StartRound()
 	c.Jobs = c.Pool.Jobs
 
-	// A path that changed on the last loop (as discovered via fsnotify). If
+	// Paths that changed on the last loop (as discovered via fsnotify). If
 	// set, we go into quick build mode with only this path activated, and
 	// unset it afterwards. This saves us doing lots of checks on the
 	// filesystem and makes jobs much faster to run.
-	var lastChangedPath string
+	var lastChangedSources map[string]struct{}
 
 	for {
 		c.Log.Debugf("Start loop")
 		c.ResetBuild()
 
-		if lastChangedPath != "" {
-			c.QuickPaths = map[string]struct{}{lastChangedPath: {}}
+		if lastChangedSources != nil {
+			c.QuickPaths = lastChangedSources
 		}
 
 		errors := f(c)
@@ -188,7 +188,7 @@ func build(c *Context, f func(*Context) []error,
 			c.Stats.NumJobsExecuted, c.Stats.NumJobs, c.Stats.NumJobsErrored,
 			c.Stats.LoopDuration)
 
-		lastChangedPath = ""
+		lastChangedSources = nil
 		c.QuickPaths = nil
 
 		buildComplete.Broadcast()
@@ -196,6 +196,7 @@ func build(c *Context, f func(*Context) []error,
 		if c.FirstRun {
 			c.FirstRun = false
 		} else {
+			// TODO: Use buildComplete instead.
 			rebuildDone <- struct{}{}
 		}
 
@@ -204,8 +205,8 @@ func build(c *Context, f func(*Context) []error,
 			c.Log.Infof("Detected finish signal; stopping")
 			return len(errors) < 1
 
-		case lastChangedPath = <-rebuild:
-			c.Log.Infof("Detected change on '%s'; rebuilding", lastChangedPath)
+		case lastChangedSources = <-rebuild:
+			c.Log.Infof("Detected change on '%+v'; rebuilding", lastChangedSources)
 		}
 	}
 }
@@ -369,6 +370,8 @@ func sortJobsBySlowest(jobs []*Job) {
 	})
 }
 
+const watchDelay = 20 * time.Millisecond
+
 // Listens for file system changes from fsnotify and pushes relevant ones back
 // out over the rebuild channel.
 //
@@ -376,10 +379,41 @@ func sortJobsBySlowest(jobs []*Job) {
 // signaled rebuildDone, so there is a possibility that in the case of very
 // fast consecutive changes the build might not be perfectly up to date.
 func watchChanges(c *Context, watcher *fsnotify.Watcher,
-	rebuild chan string, rebuildDone chan struct{}) {
+	rebuild chan map[string]struct{}, rebuildDone chan struct{}) {
+
+	var timerStarted bool
+	delayTimer := time.NewTimer(watchDelay)
+	if !delayTimer.Stop() {
+		<-delayTimer.C
+	}
+
+	changedSources := make(map[string]struct{})
+
 OUTER:
 	for {
 		select {
+		case <-delayTimer.C:
+			c.Log.Debugf("Timer fired")
+			// Disable the timer again
+			delayTimer.Stop()
+			timerStarted = false
+
+			c.Log.Debugf("Timer starting rebuild")
+
+			// Start rebuild
+			rebuild <- changedSources
+			changedSources = make(map[string]struct{})
+
+			// Wait until rebuild is finished. In the meantime, drain any
+			// new events that come in on the watcher's channel.
+			for {
+				select {
+				case <-rebuildDone:
+					continue OUTER
+				case <-watcher.Events:
+				}
+			}
+
 		case event, ok := <-watcher.Events:
 			if !ok {
 				return
@@ -391,17 +425,13 @@ OUTER:
 				continue
 			}
 
-			// Start rebuild
-			rebuild <- event.Name
+			changedSources[event.Name] = struct{}{}
 
-			// Wait until rebuild is finished. In the meantime, drain any
-			// new events that come in on the watcher's channel.
-			for {
-				select {
-				case <-rebuildDone:
-					continue OUTER
-				case <-watcher.Events:
-				}
+			if !timerStarted {
+				// Start the delay timer that will eventually trigger the build.
+				// Accumulate events in the meantime.
+				delayTimer.Reset(watchDelay)
+				timerStarted = true
 			}
 
 		case err, ok := <-watcher.Errors:
