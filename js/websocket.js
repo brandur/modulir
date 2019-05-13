@@ -13,8 +13,13 @@ socket.onmessage = function (event) {
 
   switch(data.type) {
     case "build_complete":
+      // 1000 = "Normal closure" and the second parameter is a human-readable
+      // reason.
+      socket.close(1000, "Reloading page");
+
       console.log("Reloading page");
       location.reload(true);
+
       break;
 
     default:

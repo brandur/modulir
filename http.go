@@ -71,9 +71,14 @@ type websocketEvent struct {
 	Type string `json:"type"`
 }
 
-// The frequency at which to send pings back to clients connected over a
-// websocket.
-const websocketPingPeriod = 30 * time.Second
+const (
+	// Maximum message size allowed from peer.
+	websocketMaxMessageSize = 512
+
+	// The frequency at which to send pings back to clients connected over a
+	// websocket.
+	websocketPingPeriod = 30 * time.Second
+)
 
 // A template that will render the websocket JavaScript code that connecting
 // clients will load and run. The `websocketJS` source of this template comes
@@ -96,7 +101,8 @@ func getWebsocketHandler(c *Context, buildComplete *sync.Cond) func(w http.Respo
 			return
 		}
 
-		go websocketReadPump(c, conn, buildComplete)
+		go websocketReadPump(c, conn)
+		go websocketWritePump(c, conn, buildComplete)
 	}
 }
 
@@ -114,7 +120,31 @@ func getWebsocketJSHandler(c *Context) func(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func websocketReadPump(c *Context, conn *websocket.Conn, buildComplete *sync.Cond) {
+func websocketReadPump(c *Context, conn *websocket.Conn) {
+	defer func() {
+		conn.Close()
+	}()
+
+	conn.SetReadLimit(websocketMaxMessageSize)
+
+	//conn.SetReadDeadline(time.Now().Add(pongWait))
+	//conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err) {
+				c.Log.Infof("Websocket closed: %v", err)
+			}
+			break
+		}
+
+		// We don't expect clients to send anything right now, so just ignore
+		// incoming messages.
+	}
+}
+
+func websocketWritePump(c *Context, conn *websocket.Conn, buildComplete *sync.Cond) {
 	ticker := time.NewTicker(websocketPingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -149,7 +179,9 @@ func websocketReadPump(c *Context, conn *websocket.Conn, buildComplete *sync.Con
 	}
 
 errored:
-	c.Log.Errorf("Error writing to websocket: %v", err)
+	if err != nil {
+		c.Log.Errorf("Error writing to websocket: %v", err)
+	}
 
 	if err := conn.Close(); err != nil {
 		c.Log.Errorf("Error closing websocket: %v", err)
