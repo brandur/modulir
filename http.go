@@ -101,8 +101,12 @@ func getWebsocketHandler(c *Context, buildComplete *sync.Cond) func(w http.Respo
 			return
 		}
 
-		go websocketReadPump(c, conn)
-		go websocketWritePump(c, conn, buildComplete)
+		connClosed := make(chan struct{}, 1)
+
+		go websocketReadPump(c, conn, connClosed)
+		go websocketWritePump(c, conn, connClosed, buildComplete)
+
+		c.Log.Infof("Websocket opened")
 	}
 }
 
@@ -120,9 +124,10 @@ func getWebsocketJSHandler(c *Context) func(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func websocketReadPump(c *Context, conn *websocket.Conn) {
+func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{}) {
 	defer func() {
 		conn.Close()
+		connClosed <- struct{}{}
 	}()
 
 	conn.SetReadLimit(websocketMaxMessageSize)
@@ -144,7 +149,9 @@ func websocketReadPump(c *Context, conn *websocket.Conn) {
 	}
 }
 
-func websocketWritePump(c *Context, conn *websocket.Conn, buildComplete *sync.Cond) {
+func websocketWritePump(c *Context, conn *websocket.Conn,
+	connClosed chan struct{}, buildComplete *sync.Cond) {
+
 	ticker := time.NewTicker(websocketPingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -171,6 +178,10 @@ func websocketWritePump(c *Context, conn *websocket.Conn, buildComplete *sync.Co
 			if err = conn.WriteJSON(websocketEvent{Type: "build_complete"}); err != nil {
 				goto errored
 			}
+
+		case <-connClosed:
+			goto finished
+
 		case <-ticker.C:
 			if err = conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				goto errored
@@ -183,7 +194,5 @@ errored:
 		c.Log.Errorf("Error writing to websocket: %v", err)
 	}
 
-	if err := conn.Close(); err != nil {
-		c.Log.Errorf("Error closing websocket: %v", err)
-	}
+finished:
 }
