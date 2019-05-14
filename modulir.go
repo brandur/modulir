@@ -206,7 +206,7 @@ func build(c *Context, f func(*Context) []error,
 			return len(errors) < 1
 
 		case lastChangedSources = <-rebuild:
-			c.Log.Infof("Detected change on '%s'; rebuilding", lastChangedSources)
+			c.Log.Infof("Detected change on %v; rebuilding", mapKeys(lastChangedSources))
 		}
 	}
 }
@@ -302,6 +302,15 @@ func logSlowestJobs(c *Context) {
 			break
 		}
 	}
+}
+
+// Extract the names of keys out of a map and return them as a slice.
+func mapKeys(m map[string]struct{}) []string {
+	var keys []string
+	for key := range m {
+		keys = append(keys, key)
+	}
+	return keys
 }
 
 // Decides whether a rebuild should be triggered given some input event
