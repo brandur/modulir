@@ -90,7 +90,6 @@ func BuildLoop(config *Config, f func(*Context) []error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		exitWithError(errors.Wrap(err, "Error starting watcher"))
-		os.Exit(1)
 	}
 	defer watcher.Close()
 
