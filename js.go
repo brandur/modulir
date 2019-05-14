@@ -4,33 +4,59 @@
 package modulir
 
 // Source: websocket.js
-const websocketJS = "// TODO: Reconnect a closed connection.\n" +
-    "console.log(\"Connecting to Modulir /websocket\");\n" +
-    "var socket = new WebSocket(\"ws://localhost:{{.Port}}/websocket\");\n" +
+const websocketJS = "// A timer used to try and periodically reconnect if we lose the connection to\n" +
+    "// the server.\n" +
+    "var timer;\n" +
     "\n" +
-    "socket.onclose = function(event) {\n" +
-    "  console.log(\"Lost webhook connection\");\n" +
-    "}\n" +
+    "function connect() {\n" +
+    "  var url = \"ws://localhost:{{.Port}}/websocket\";\n" +
     "\n" +
-    "socket.onmessage = function (event) {\n" +
-    "  console.log(`Received event of type '${event.type}' data: ${event.data}`);\n" +
+    "  console.log(`Connecting to Modulir: ${url}`);\n" +
+    "  var socket = new WebSocket(url);\n" +
     "\n" +
-    "  var data = JSON.parse(event.data);\n" +
+    "  socket.onclose = function(event) {\n" +
+    "    console.log(\"Lost webhook connection\");\n" +
     "\n" +
-    "  switch(data.type) {\n" +
-    "    case \"build_complete\":\n" +
-    "      // 1000 = \"Normal closure\" and the second parameter is a human-readable\n" +
-    "      // reason.\n" +
-    "      socket.close(1000, \"Reloading page after receiving build_complete\");\n" +
+    "    // Set an interval to continue trying to reconnect periodically until we\n" +
+    "    // succeed.\n" +
+    "    if (!window.timer) {\n" +
+    "      window.timer = setInterval(function() {\n" +
+    "        console.log(\"Trying to reconnect to Modulir: ${url}\");\n" +
+    "        connect()\n" +
+    "      }, 5000)\n" +
+    "    }\n" +
+    "  }\n" +
     "\n" +
-    "      console.log(\"Reloading page after receiving build_complete\");\n" +
-    "      location.reload(true);\n" +
+    "  socket.onmessage = function(event) {\n" +
+    "    console.log(`Received event of type '${event.type}' data: ${event.data}`);\n" +
     "\n" +
-    "      break;\n" +
+    "    var data = JSON.parse(event.data);\n" +
     "\n" +
-    "    default:\n" +
-    "      console.log(`Don't know how to handle type '${data.type}'`);\n" +
+    "    switch(data.type) {\n" +
+    "      case \"build_complete\":\n" +
+    "        // 1000 = \"Normal closure\" and the second parameter is a human-readable\n" +
+    "        // reason.\n" +
+    "        socket.close(1000, \"Reloading page after receiving build_complete\");\n" +
+    "\n" +
+    "        console.log(\"Reloading page after receiving build_complete\");\n" +
+    "        location.reload(true);\n" +
+    "\n" +
+    "        break;\n" +
+    "\n" +
+    "      default:\n" +
+    "        console.log(`Don't know how to handle type '${data.type}'`);\n" +
+    "    }\n" +
+    "  }\n" +
+    "\n" +
+    "  socket.onopen = function (event) {\n" +
+    "    if (window.timer) {\n" +
+    "      console.log(\"Clearing timer\");\n" +
+    "      window.clearInterval(window.timer);\n" +
+    "      window.timer = null;\n" +
+    "    }\n" +
     "  }\n" +
     "}\n" +
+    "\n" +
+    "connect();\n" +
     "";
 
