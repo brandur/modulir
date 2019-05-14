@@ -156,10 +156,13 @@ func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{
 		// We don't expect clients to send anything right now, so just ignore
 		// incoming messages.
 	}
+	c.Log.Infof("READ PUMP: Ending")
 }
 
 func websocketWritePump(c *Context, conn *websocket.Conn,
 	connClosed chan struct{}, buildComplete *sync.Cond) {
+
+	c.Log.Infof("WRITE PUMP: Starting")
 
 	ticker := time.NewTicker(websocketPingPeriod)
 	defer func() {
@@ -174,18 +177,20 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 		for {
 			buildComplete.L.Lock()
 			buildComplete.Wait()
+			c.Log.Infof("Signaled with build complete")
 			buildCompleteChan <- struct{}{}
 			buildComplete.L.Unlock()
 		}
 	}()
 
-	var err error
+	var writeErr error
 
 	for {
 		select {
 		case <-buildCompleteChan:
+			c.Log.Infof("Sending build_complete")
 			conn.SetWriteDeadline(time.Now().Add(websocketWriteWait))
-			if err = conn.WriteJSON(websocketEvent{Type: "build_complete"}); err != nil {
+			if writeErr = conn.WriteJSON(websocketEvent{Type: "build_complete"}); writeErr != nil {
 				goto errored
 			}
 
@@ -194,16 +199,17 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 
 		case <-ticker.C:
 			conn.SetWriteDeadline(time.Now().Add(websocketWriteWait))
-			if err = conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if writeErr = conn.WriteMessage(websocket.PingMessage, nil); writeErr != nil {
 				goto errored
 			}
 		}
 	}
 
 errored:
-	if err != nil {
-		c.Log.Errorf("Error writing to websocket: %v", err)
+	if writeErr != nil {
+		c.Log.Errorf("Error writing to websocket: %v", writeErr)
 	}
 
 finished:
+	c.Log.Infof("WRITE PUMP: Ending")
 }
