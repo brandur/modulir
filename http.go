@@ -120,7 +120,7 @@ func getWebsocketJSHandler(c *Context) func(w http.ResponseWriter, r *http.Reque
 		w.Header().Set("Content-Type", "text/javascript")
 		err := websocketJSTemplate.Execute(w, map[string]interface{}{
 			"Port": c.Port,
-		});
+		})
 
 		if err != nil {
 			c.Log.Errorf("Error executing template/writing websocket.js: %v", err)
@@ -139,6 +139,7 @@ func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{
 
 	conn.SetReadDeadline(time.Now().Add(websocketPongWait))
 	conn.SetPongHandler(func(string) error {
+		c.Log.Debugf("<Websocket %v> Received pong", conn.RemoteAddr())
 		conn.SetReadDeadline(time.Now().Add(websocketPongWait))
 		return nil
 	})
@@ -200,7 +201,7 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 			// triggers will cause it to fall through and end the Goroutine. So
 			// it will eventually be cleaned up, but that clean up may be
 			// delayed.
-			<- iterationComplete
+			<-iterationComplete
 			if done {
 				break
 			}
@@ -219,6 +220,7 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 			done = true
 
 		case <-ticker.C:
+			c.Log.Debugf("<Websocket %v> Sending ping", conn.RemoteAddr())
 			conn.SetWriteDeadline(time.Now().Add(websocketWriteWait))
 			writeErr = conn.WriteMessage(websocket.PingMessage, nil)
 		}
