@@ -80,7 +80,7 @@ const (
 	websocketPingPeriod = (websocketPongWait * 9) / 10
 
 	// Time allowed to read the next pong message from the peer.
-	websocketPongWait = 30 * time.Second
+	websocketPongWait = 10 * time.Second
 
 	// Time allowed to write a message to the peer.
 	websocketWriteWait = 10 * time.Second
@@ -149,6 +149,9 @@ func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err) {
 				c.Log.Infof("<Websocket %v> Closed: %v", conn.RemoteAddr(), err)
+			} else {
+				c.Log.Errorf("<Websocket %v> Error reading message: %v",
+					conn.RemoteAddr(), err)
 			}
 			break
 		}
@@ -171,7 +174,7 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 
 	var done bool
 	var writeErr error
-	iterationComplete := make(chan struct{}, 1)
+	sendComplete := make(chan struct{}, 1)
 
 	// This is a hack because of course there's no way to select on a
 	// conditional variable. Instead, we have a seperate Goroutine wait on the
@@ -201,7 +204,7 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 			// triggers will cause it to fall through and end the Goroutine. So
 			// it will eventually be cleaned up, but that clean up may be
 			// delayed.
-			<-iterationComplete
+			<-sendComplete
 			if done {
 				break
 			}
@@ -215,6 +218,7 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 		case <-buildCompleteChan:
 			conn.SetWriteDeadline(time.Now().Add(websocketWriteWait))
 			writeErr = conn.WriteJSON(websocketEvent{Type: "build_complete"})
+			sendComplete <- struct{}{}
 
 		case <-connClosed:
 			done = true
@@ -231,7 +235,6 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 			done = true
 		}
 
-		iterationComplete <- struct{}{}
 		if done {
 			break
 		}
