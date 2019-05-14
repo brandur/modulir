@@ -314,8 +314,8 @@ func shouldRebuild(path string, op fsnotify.Op) bool {
 		return false
 	}
 
-	// I don't really understand what this is, but the file appears every so
-	// often, and Hugo exempted it too. Maybe some quirk of Mac OS or fsnotify.
+	// Vim creates this temporary file to see whether it can write into a
+	// target directory. It screws up our watching algorithm, so ignore it.
 	if base == "4913" {
 		return false
 	}
