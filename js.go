@@ -21,9 +21,9 @@ const websocketJS = "// TODO: Reconnect a closed connection.\n" +
     "    case \"build_complete\":\n" +
     "      // 1000 = \"Normal closure\" and the second parameter is a human-readable\n" +
     "      // reason.\n" +
-    "      socket.close(1000, \"Reloading page\");\n" +
+    "      socket.close(1000, \"Reloading page after receiving build_complete\");\n" +
     "\n" +
-    "      console.log(\"Reloading page\");\n" +
+    "      console.log(\"Reloading page after receiving build_complete\");\n" +
     "      location.reload(true);\n" +
     "\n" +
     "      break;\n" +

@@ -15,9 +15,9 @@ socket.onmessage = function (event) {
     case "build_complete":
       // 1000 = "Normal closure" and the second parameter is a human-readable
       // reason.
-      socket.close(1000, "Reloading page");
+      socket.close(1000, "Reloading page after receiving build_complete");
 
-      console.log("Reloading page");
+      console.log("Reloading page after receiving build_complete");
       location.reload(true);
 
       break;
