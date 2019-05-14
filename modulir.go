@@ -438,9 +438,17 @@ func watchChanges(c *Context, watcher *fsnotify.Watcher,
 			// On the first receipt of a rebuild-eligible event we start
 			// rebuilding immediately, and during the rebuild we accumulate any
 			// other rebuild-eligible changes that stream in. When the initial
-			// build finishes, we loop and start a new one.
+			// build finishes, we loop and start a new one if there were
+			// changes since. If not, we return to the outer loop and continue
+			// watching for fsnotify events.
 			//
-			// This process continues until a build complete and there
+			// If changes did come in, the inner for loop continues to work --
+			// triggering builds and accumulating changes while they're running
+			// -- until we're able to successfully execute a build loop without
+			// seeing a new change.
+			//
+			// The overwhelmingly common case will be few files being changed,
+			// and therefore the inner for almost never needs to loop.
 			for {
 				if len(lastChangedSources) < 1 {
 					break
