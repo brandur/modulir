@@ -148,7 +148,7 @@ const (
 func build(c *Context, f func(*Context) []error,
 	finish chan struct{}, buildComplete *sync.Cond) bool {
 
-	rebuild := make(chan string)
+	rebuild := make(chan map[string]struct{})
 	rebuildDone := make(chan struct{})
 
 	if c.Watcher != nil {
@@ -158,18 +158,18 @@ func build(c *Context, f func(*Context) []error,
 	c.Pool.StartRound()
 	c.Jobs = c.Pool.Jobs
 
-	// A path that changed on the last loop (as discovered via fsnotify). If
-	// set, we go into quick build mode with only this path activated, and
-	// unset it afterwards. This saves us doing lots of checks on the
+	// Paths that changed on the last loop (as discovered via fsnotify). If
+	// set, we go into quick build mode with only these paths activated, and
+	// unset them afterwards. This saves us doing lots of checks on the
 	// filesystem and makes jobs much faster to run.
-	var lastChangedPath string
+	var lastChangedSources map[string]struct{}
 
 	for {
 		c.Log.Debugf("Start loop")
 		c.ResetBuild()
 
-		if lastChangedPath != "" {
-			c.QuickPaths = map[string]struct{}{lastChangedPath: {}}
+		if lastChangedSources != nil {
+			c.QuickPaths = lastChangedSources
 		}
 
 		errors := f(c)
@@ -189,7 +189,7 @@ func build(c *Context, f func(*Context) []error,
 			c.Stats.NumJobsExecuted, c.Stats.NumJobs, c.Stats.NumJobsErrored,
 			c.Stats.LoopDuration)
 
-		lastChangedPath = ""
+		lastChangedSources = nil
 		c.QuickPaths = nil
 
 		buildComplete.Broadcast()
@@ -205,8 +205,8 @@ func build(c *Context, f func(*Context) []error,
 			c.Log.Infof("Detected finish signal; stopping")
 			return len(errors) < 1
 
-		case lastChangedPath = <-rebuild:
-			c.Log.Infof("Detected change on '%s'; rebuilding", lastChangedPath)
+		case lastChangedSources = <-rebuild:
+			c.Log.Infof("Detected change on '%s'; rebuilding", lastChangedSources)
 		}
 	}
 }
@@ -407,8 +407,8 @@ func sortJobsBySlowest(jobs []*Job) {
 // signaled rebuildDone, so there is a possibility that in the case of very
 // fast consecutive changes the build might not be perfectly up to date.
 func watchChanges(c *Context, watcher *fsnotify.Watcher,
-	rebuild chan string, rebuildDone chan struct{}) {
-OUTER:
+	rebuild chan map[string]struct{}, rebuildDone chan struct{}) {
+
 	for {
 		select {
 		case event, ok := <-watcher.Events:
@@ -417,21 +417,51 @@ OUTER:
 			}
 
 			c.Log.Debugf("Received event from watcher: %+v", event)
+			lastChangedSources := map[string]struct{}{event.Name: {}}
 
 			if !shouldRebuild(event.Name, event.Op) {
 				continue
 			}
 
-			// Start rebuild
-			rebuild <- event.Name
-
-			// Wait until rebuild is finished. In the meantime, drain any
-			// new events that come in on the watcher's channel.
+			// The central purpose of this loop is to make sure we do as few
+			// build loops given incoming changes as possible.
+			//
+			// On the first receipt of a rebuild-eligible event we start
+			// rebuilding immediately, and during the rebuild we accumulate any
+			// other rebuild-eligible changes that stream in. When the initial
+			// build finishes, we loop and start a new one.
+			//
+			// This process continues until a build complete and there
 			for {
-				select {
-				case <-rebuildDone:
-					continue OUTER
-				case <-watcher.Events:
+				if len(lastChangedSources) < 1 {
+					break
+				}
+
+				// Start rebuild
+				rebuild <- lastChangedSources
+
+				// Zero out the last set of changes and start accumulating.
+				lastChangedSources = nil
+
+				// Wait until rebuild is finished. In the meantime, accumulate
+				// new events that come in on the watcher's channel and prepare
+				// for the next loop..
+			INNER_LOOP:
+				for {
+					select {
+					case <-rebuildDone:
+						// Break and start next outer loop
+						break INNER_LOOP
+
+					case event := <-watcher.Events:
+						if shouldRebuild(event.Name, event.Op) {
+							if lastChangedSources == nil {
+								lastChangedSources = make(map[string]struct{})
+							}
+
+							lastChangedSources[event.Name] = struct{}{}
+						}
+					}
 				}
 			}
 
