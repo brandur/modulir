@@ -111,8 +111,7 @@ func getWebsocketHandler(c *Context, buildComplete *sync.Cond) func(w http.Respo
 
 		go websocketReadPump(c, conn, connClosed)
 		go websocketWritePump(c, conn, connClosed, buildComplete)
-
-		c.Log.Infof("Websocket opened")
+		c.Log.Infof("<Websocket %v> Opened", conn.RemoteAddr())
 	}
 }
 
@@ -148,7 +147,7 @@ func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{
 		_, _, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err) {
-				c.Log.Infof("Websocket closed: %v", err)
+				c.Log.Infof("<Websocket %v> Closed: %v", conn.RemoteAddr(), err)
 			}
 			break
 		}
@@ -156,13 +155,12 @@ func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{
 		// We don't expect clients to send anything right now, so just ignore
 		// incoming messages.
 	}
-	c.Log.Infof("READ PUMP: Ending")
+
+	c.Log.Debugf("<Websocket %v> Read pump ending", conn.RemoteAddr())
 }
 
 func websocketWritePump(c *Context, conn *websocket.Conn,
 	connClosed chan struct{}, buildComplete *sync.Cond) {
-
-	c.Log.Infof("WRITE PUMP: Starting")
 
 	ticker := time.NewTicker(websocketPingPeriod)
 	defer func() {
@@ -170,46 +168,72 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 		conn.Close()
 	}()
 
+	var done bool
+	var writeErr error
+	iterationComplete := make(chan struct{}, 1)
+
 	// This is a hack because of course there's no way to select on a
-	// conditional variable.
-	buildCompleteChan := make(chan struct{})
+	// conditional variable. Instead, we have a seperate Goroutine wait on the
+	// conditional variable and signal the main select below through a channel.
+	buildCompleteChan := make(chan struct{}, 1)
 	go func() {
 		for {
 			buildComplete.L.Lock()
 			buildComplete.Wait()
-			c.Log.Infof("Signaled with build complete")
-			buildCompleteChan <- struct{}{}
 			buildComplete.L.Unlock()
-		}
-	}()
 
-	var writeErr error
+			buildCompleteChan <- struct{}{}
+
+			// Break out of the Goroutine when we can to prevent a Goroutine
+			// leak.
+			//
+			// Unfortunately this isn't perfect. If we were sending a
+			// build_complete, the Goroutine will die right away because the
+			// wait below will fall through after the message was fully
+			// received, and the client-side JavaScript will being the page
+			// reload and close the websocket before that occurs. That's good.
+			//
+			// What isn't so good is that for other exit conditions like a
+			// closed connection or a failed ping, the Goroutine will still be
+			// waiting on the conditional variable's Wait above, and not exit
+			// right away. The good news is that the next build event that
+			// triggers will cause it to fall through and end the Goroutine. So
+			// it will eventually be cleaned up, but that clean up may be
+			// delayed.
+			<- iterationComplete
+			if done {
+				break
+			}
+		}
+
+		c.Log.Debugf("<Websocket %v> Build complete feeder ending", conn.RemoteAddr())
+	}()
 
 	for {
 		select {
 		case <-buildCompleteChan:
-			c.Log.Infof("Sending build_complete")
 			conn.SetWriteDeadline(time.Now().Add(websocketWriteWait))
-			if writeErr = conn.WriteJSON(websocketEvent{Type: "build_complete"}); writeErr != nil {
-				goto errored
-			}
+			writeErr = conn.WriteJSON(websocketEvent{Type: "build_complete"})
 
 		case <-connClosed:
-			goto finished
+			done = true
 
 		case <-ticker.C:
 			conn.SetWriteDeadline(time.Now().Add(websocketWriteWait))
-			if writeErr = conn.WriteMessage(websocket.PingMessage, nil); writeErr != nil {
-				goto errored
-			}
+			writeErr = conn.WriteMessage(websocket.PingMessage, nil)
+		}
+
+		if writeErr != nil {
+			c.Log.Errorf("<Websocket %v> Error writing: %v",
+				conn.RemoteAddr(), writeErr)
+			done = true
+		}
+
+		iterationComplete <- struct{}{}
+		if done {
+			break
 		}
 	}
 
-errored:
-	if writeErr != nil {
-		c.Log.Errorf("Error writing to websocket: %v", writeErr)
-	}
-
-finished:
-	c.Log.Infof("WRITE PUMP: Ending")
+	c.Log.Debugf("<Websocket %v> Write pump ending", conn.RemoteAddr())
 }
