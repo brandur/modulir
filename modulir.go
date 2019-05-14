@@ -113,7 +113,8 @@ func BuildLoop(config *Config, f func(*Context) []error) {
 	// Run the build loop. Loops forever until receiving on finish.
 	go build(c, f, finish, buildComplete)
 
-	// Listen for signals
+	// Listen for signals. Modulir will gracefully exit and re-exec itself upon
+	// receipt of USR2.
 	signals := make(chan os.Signal, 1024)
 	signal.Notify(signals, unix.SIGUSR2)
 	for {
