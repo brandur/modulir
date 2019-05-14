@@ -311,11 +311,28 @@ func shouldRebuild(path string, op fsnotify.Op) bool {
 		return false
 	}
 
-	if op&fsnotify.Chmod == fsnotify.Chmod {
-		return false
+	if op&fsnotify.Create != 0 {
+		return true
 	}
 
-	return true
+	if op&fsnotify.Remove != 0 {
+		return true
+	}
+
+	if op&fsnotify.Write != 0 {
+		return true
+	}
+
+	// Ignore everything else. Rationale:
+	//
+	//   * chmod: We don't really care about these as they won't affect build
+	//     output. (Unless potentially we no longer can read the file, but
+	//     we'll go down that path if it ever becomes a problem.)
+	//
+	//   * rename: Will produce a following create event as well, so just
+	//     listen for that instead.
+	//
+	return false
 }
 
 // Replaces the current process with a fresh one by invoking the same
