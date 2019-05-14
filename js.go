@@ -4,27 +4,23 @@
 package modulir
 
 // Source: websocket.js
-const websocketJS = "// A timer used to try and periodically reconnect if we lose the connection to\n" +
-    "// the server.\n" +
-    "var timer;\n" +
-    "\n" +
-    "function connect() {\n" +
+const websocketJS = "function connect() {\n" +
     "  var url = \"ws://localhost:{{.Port}}/websocket\";\n" +
     "\n" +
     "  console.log(`Connecting to Modulir: ${url}`);\n" +
     "  var socket = new WebSocket(url);\n" +
     "\n" +
     "  socket.onclose = function(event) {\n" +
-    "    console.log(\"Lost webhook connection\");\n" +
+    "    console.log(\"Websocket connection closed or unable to connect; starting reconnect timeout\");\n" +
+    "\n" +
+    "    // Allow the last socket to be cleaned up.\n" +
+    "    socket = null;\n" +
     "\n" +
     "    // Set an interval to continue trying to reconnect periodically until we\n" +
     "    // succeed.\n" +
-    "    if (!window.timer) {\n" +
-    "      window.timer = setInterval(function() {\n" +
-    "        console.log(\"Trying to reconnect to Modulir: ${url}\");\n" +
-    "        connect()\n" +
-    "      }, 5000)\n" +
-    "    }\n" +
+    "    setTimeout(function() {\n" +
+    "        connect();\n" +
+    "    }, 5000)\n" +
     "  }\n" +
     "\n" +
     "  socket.onmessage = function(event) {\n" +
@@ -48,12 +44,8 @@ const websocketJS = "// A timer used to try and periodically reconnect if we los
     "    }\n" +
     "  }\n" +
     "\n" +
-    "  socket.onopen = function (event) {\n" +
-    "    if (window.timer) {\n" +
-    "      console.log(\"Clearing timer\");\n" +
-    "      window.clearInterval(window.timer);\n" +
-    "      window.timer = null;\n" +
-    "    }\n" +
+    "  socket.onopen = function(event) {\n" +
+    "    console.log(\"Websocket connected\");\n" +
     "  }\n" +
     "}\n" +
     "\n" +

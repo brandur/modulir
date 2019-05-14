@@ -1,7 +1,3 @@
-// A timer used to try and periodically reconnect if we lose the connection to
-// the server.
-var timer;
-
 function connect() {
   var url = "ws://localhost:{{.Port}}/websocket";
 
@@ -9,16 +5,16 @@ function connect() {
   var socket = new WebSocket(url);
 
   socket.onclose = function(event) {
-    console.log("Lost webhook connection");
+    console.log("Websocket connection closed or unable to connect; starting reconnect timeout");
+
+    // Allow the last socket to be cleaned up.
+    socket = null;
 
     // Set an interval to continue trying to reconnect periodically until we
     // succeed.
-    if (!window.timer) {
-      window.timer = setInterval(function() {
-        console.log("Trying to reconnect to Modulir: ${url}");
-        connect()
-      }, 5000)
-    }
+    setTimeout(function() {
+        connect();
+    }, 5000)
   }
 
   socket.onmessage = function(event) {
@@ -42,12 +38,8 @@ function connect() {
     }
   }
 
-  socket.onopen = function (event) {
-    if (window.timer) {
-      console.log("Clearing timer");
-      window.clearInterval(window.timer);
-      window.timer = null;
-    }
+  socket.onopen = function(event) {
+    console.log("Websocket connected");
   }
 }
 
