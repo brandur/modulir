@@ -34,6 +34,7 @@ func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan 
 
 		case event, ok := <-watchEvents:
 			if !ok {
+				c.Log.Infof("Watcher detected closed channel; stopping")
 				return
 			}
 
@@ -96,6 +97,7 @@ func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan 
 
 		case err, ok := <-watchErrors:
 			if !ok {
+				c.Log.Infof("Watcher detected closed channel; stopping")
 				return
 			}
 			c.Log.Errorf("Error from watcher:", err)
