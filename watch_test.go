@@ -2,6 +2,7 @@ package modulir
 
 import (
 	"testing"
+	"time"
 
 	assert "github.com/stretchr/testify/require"
 	"github.com/fsnotify/fsnotify"
@@ -30,6 +31,52 @@ func TestWatchChanges(t *testing.T) {
 
 	go watchChanges(newContext(), watchEvents, watchErrors,
 		finish, rebuild, rebuildDone)
+	
+	{
+		// An ineligible even that will be ignored.
+		watchEvents <- fsnotify.Event{Name: "a/path~", Op: fsnotify.Create}
+
+		select {
+		case <- rebuild:
+			assert.Fail(t, "Should not have received rebuild on ineligible event")
+		case <- time.After(50 * time.Millisecond):
+		}
+	}
+
+	{
+		// An valid event.
+		watchEvents <- fsnotify.Event{Name: "a/path", Op: fsnotify.Create}
+
+		select {
+		case sources := <- rebuild:
+			assert.Equal(t, map[string]struct{}{"a/path": struct{}{}}, sources)
+		case <- time.After(50 * time.Millisecond):
+			assert.Fail(t, "Should have received a rebuild signal")
+		}
+
+		// While we're rebuilding, the watcher will accumulate events. Send a
+		// few more that are eligible and one that's not.
+		watchEvents <- fsnotify.Event{Name: "a/path1", Op: fsnotify.Create}
+		watchEvents <- fsnotify.Event{Name: "a/path2", Op: fsnotify.Create}
+		watchEvents <- fsnotify.Event{Name: "a/path~", Op: fsnotify.Create}
+
+		// Signal that the build is finished
+		rebuildDone <- struct{}{}
+
+		// Now verify that we got the accumulated changes.
+		select {
+		case sources := <- rebuild:
+			assert.Equal(t, map[string]struct{}{
+				"a/path1": struct{}{},
+				"a/path2": struct{}{},
+			}, sources)
+		case <- time.After(50 * time.Millisecond):
+			assert.Fail(t, "Should have received a rebuild signal")
+		}
+
+		// Send one more rebuild done so the watcher can continue
+		rebuildDone <- struct{}{}
+	}
 
 	// Finish up
 	finish <- struct{}{}
