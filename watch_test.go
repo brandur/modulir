@@ -20,3 +20,22 @@ func TestShouldRebuild(t *testing.T) {
 	assert.Equal(t, false, shouldRebuild("a/4913", fsnotify.Create))
 	assert.Equal(t, false, shouldRebuild("a/path~", fsnotify.Create))
 }
+
+func TestWatchChanges(t *testing.T) {
+	watchEvents := make(chan fsnotify.Event, 1)
+	watchErrors := make(chan error, 1)
+	finish := make(chan struct{}, 1)
+	rebuild := make(chan map[string]struct{}, 1)
+	rebuildDone := make(chan struct{}, 1)
+
+	go watchChanges(newContext(), watchEvents, watchErrors,
+		finish, rebuild, rebuildDone)
+
+	// Finish up
+	finish <- struct{}{}
+}
+
+// Helper to easily create a new Modulir context.
+func newContext() *Context {
+	return NewContext(&Args{Log: &Logger{Level: LevelInfo}})
+}

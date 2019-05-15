@@ -66,7 +66,7 @@ type Config struct {
 func Build(config *Config, f func(*Context) []error) {
 	var buildCompleteMu sync.Mutex
 	buildComplete := sync.NewCond(&buildCompleteMu)
-	finish := make(chan struct{}, 1)
+	finish := make(chan struct{}, 2)
 
 	// Signal the build loop to finish immediately
 	finish <- struct{}{}
@@ -83,7 +83,7 @@ func Build(config *Config, f func(*Context) []error) {
 func BuildLoop(config *Config, f func(*Context) []error) {
 	var buildCompleteMu sync.Mutex
 	buildComplete := sync.NewCond(&buildCompleteMu)
-	finish := make(chan struct{}, 1)
+	finish := make(chan struct{}, 2)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -150,7 +150,8 @@ func build(c *Context, f func(*Context) []error,
 	rebuildDone := make(chan struct{})
 
 	if c.Watcher != nil {
-		go watchChanges(c, c.Watcher.Events, c.Watcher.Errors, rebuild, rebuildDone)
+		go watchChanges(c, c.Watcher.Events, c.Watcher.Errors,
+			finish, rebuild, rebuildDone)
 	}
 
 	c.Pool.StartRound()
@@ -200,11 +201,12 @@ func build(c *Context, f func(*Context) []error,
 
 		select {
 		case <-finish:
-			c.Log.Infof("Detected finish signal; stopping")
+			c.Log.Infof("Build loop detected finish signal; stopping")
 			return len(errors) < 1
 
 		case lastChangedSources = <-rebuild:
-			c.Log.Infof("Detected change on %v; rebuilding", mapKeys(lastChangedSources))
+			c.Log.Infof("Build loopo detected change on %v; rebuilding",
+				mapKeys(lastChangedSources))
 		}
 	}
 }
@@ -321,7 +323,8 @@ func mapKeys(m map[string]struct{}) []string {
 func shutdownAndExec(c *Context, finish chan struct{},
 	watcher *fsnotify.Watcher, server *http.Server) {
 
-	// Tell the build loop to finish up
+	// Tell the build loop and watcher to finish up
+	finish <- struct{}{}
 	finish <- struct{}{}
 
 	// DANGER: Defers don't seem to get called on the re-exec, so even though
