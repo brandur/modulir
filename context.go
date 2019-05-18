@@ -381,4 +381,3 @@ func (c *fileModTimeCache) promote() {
 	// Clear the new map for the next round.
 	c.pathToModTimeMapNew = make(map[string]time.Time)
 }
-
