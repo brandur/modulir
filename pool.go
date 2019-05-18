@@ -1,6 +1,7 @@
 package modulir
 
 import (
+	"sort"
 	"sync"
 	"time"
 )
@@ -176,6 +177,63 @@ func (p *Pool) JobErrors() []error {
 	return errs
 }
 
+// LogErrors logs a limited set of errors that occurred during a build.
+func (p *Pool) LogErrors() {
+	p.LogErrorsSlice(p.JobErrors())
+}
+
+// LogErrorsSlice logs a limited set of errors from the given slice.
+func (p *Pool) LogErrorsSlice(errors []error) {
+	if errors == nil {
+		return
+	}
+
+	for i, err := range errors {
+		// When dealing with an errored job (in practice, this is going to be
+		// the common case), we can provide a little more detail on what went
+		// wrong.
+		job, ok := err.(*Job)
+
+		if ok {
+			p.log.Errorf("Job error: %v (job: '%s', time: %v)",
+				job.Err, job.Name, job.Duration)
+		} else {
+			p.log.Errorf("Build error: %v", err)
+		}
+
+		if i >= maxMessages-1 {
+			p.log.Errorf("... too many errors (limit reached)")
+			break
+		}
+	}
+}
+
+// LogSlowest logs a limited set of executed jobs from the last build starting
+// with the slowest jobs on top.
+func (p *Pool) LogSlowest() {
+	p.LogSlowestSlice(p.JobsExecuted)
+}
+
+// LogSlowestSlice logs a limited set of executed jobs from the given slice.
+func (p *Pool) LogSlowestSlice(jobs []*Job) {
+	sortJobsBySlowest(jobs)
+
+	for i, job := range jobs {
+		// Having this in the loop ensures we don't print it if zero jobs
+		// executed
+		if i == 0 {
+			p.log.Infof("Jobs executed (slowest first):")
+		}
+
+		p.log.Infof("    %s (time: %v)", job.Name, job.Duration)
+
+		if i >= maxMessages-1 {
+			p.log.Infof("... many jobs executed (limit reached)")
+			break
+		}
+	}
+}
+
 // Stop disables and cleans up the pool by spinning down all Goroutines.
 func (p *Pool) Stop() {
 	if !p.initialized {
@@ -316,4 +374,14 @@ const (
 	// When to report that a job is probably timed out. We call it a "soft"
 	// timeout because we can't actually kill jobs.
 	jobSoftTimeout = 15 * time.Second
+
+	// Maximum number of errors or jobs to print on screen after a build loop.
+	maxMessages = 10
 )
+
+// Sorts a slice of jobs with the slowest on top.
+func sortJobsBySlowest(jobs []*Job) {
+	sort.Slice(jobs, func(i, j int) bool {
+		return jobs[j].Duration < jobs[i].Duration
+	})
+}

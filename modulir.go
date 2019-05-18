@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sort"
 	"sync"
 	"time"
 
@@ -128,11 +127,6 @@ func BuildLoop(config *Config, f func(*Context) []error) {
 //
 //////////////////////////////////////////////////////////////////////////////
 
-const (
-	// Maximum number of errors or jobs to print on screen after a build loop.
-	maxMessages = 10
-)
-
 // Runs an infinite built loop until a signal is received over the `finish`
 // channel.
 //
@@ -174,8 +168,8 @@ func build(c *Context, f func(*Context) []error,
 			errors = append(errors, lastRoundErrors...)
 		}
 
-		logErrors(c, errors)
-		logSlowestJobs(c)
+		c.Pool.LogErrorsSlice(errors)
+		c.Pool.LogSlowestSlice(c.Stats.JobsExecuted)
 
 		c.Log.Infof("Built site in %s (%v / %v job(s) did work; %v errored; loop took %v)",
 			buildDuration,
@@ -261,52 +255,6 @@ func initContext(config *Config, watcher *fsnotify.Watcher) *Context {
 	})
 }
 
-// Log a limited set of errors that occurred during a build.
-func logErrors(c *Context, errors []error) {
-	if errors == nil {
-		return
-	}
-
-	for i, err := range errors {
-		// When dealing with an errored job (in practice, this is going to be
-		// the common case), we can provide a little more detail on what went
-		// wrong.
-		job, ok := err.(*Job)
-
-		if ok {
-			c.Log.Errorf("Job error: %v (job: '%s', time: %v)",
-				job.Err, job.Name, job.Duration)
-		} else {
-			c.Log.Errorf("Build error: %v", err)
-		}
-
-		if i >= maxMessages-1 {
-			c.Log.Errorf("... too many errors (limit reached)")
-			break
-		}
-	}
-}
-
-// Log a limited set of executed jobs from the last build.
-func logSlowestJobs(c *Context) {
-	sortJobsBySlowest(c.Stats.JobsExecuted)
-
-	for i, job := range c.Stats.JobsExecuted {
-		// Having this in the loop ensures we don't print it if zero jobs
-		// executed
-		if i == 0 {
-			c.Log.Infof("Jobs executed (slowest first):")
-		}
-
-		c.Log.Infof("    %s (time: %v)", job.Name, job.Duration)
-
-		if i >= maxMessages-1 {
-			c.Log.Infof("... many jobs executed (limit reached)")
-			break
-		}
-	}
-}
-
 // Extract the names of keys out of a map and return them as a slice.
 func mapKeys(m map[string]struct{}) []string {
 	var keys []string
@@ -359,11 +307,4 @@ func shutdownAndExec(c *Context, finish chan struct{},
 	if err := unix.Exec(execPath, os.Args, os.Environ()); err != nil {
 		exitWithError(err)
 	}
-}
-
-// Sorts a slice of jobs with the slowest on top.
-func sortJobsBySlowest(jobs []*Job) {
-	sort.Slice(jobs, func(i, j int) bool {
-		return jobs[j].Duration < jobs[i].Duration
-	})
 }
