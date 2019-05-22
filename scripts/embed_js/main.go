@@ -40,7 +40,7 @@ func main() {
 
 		str := string(data)
 		str = strings.ReplaceAll(str, `"`, `\"`)
-		str = strings.ReplaceAll(str, "\n", "\\n\" +\n    \"")
+		str = strings.ReplaceAll(str, "\n", "\\n\" +\n\t\"");
 
 		goStr += fmt.Sprintf(goTemplate, file, name, str)
 	}
