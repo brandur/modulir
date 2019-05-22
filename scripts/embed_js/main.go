@@ -45,6 +45,10 @@ func main() {
 		goStr += fmt.Sprintf(goTemplate, file, name, str)
 	}
 
+	// Add one trailing newline to make the final format more agreeable to
+	// Gofmt
+	goStr += "\n"
+
 	if err := ioutil.WriteFile(goTarget, []byte(goStr), 0755); err != nil {
 		exitWithError(err)
 	}
