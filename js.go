@@ -54,5 +54,4 @@ const websocketJS = "function connect() {\n" +
 	"}\n" +
 	"\n" +
 	"connect();\n" +
-	"";
-
+	""

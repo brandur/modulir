@@ -68,17 +68,17 @@ const goHeader = `//
 //
 //
 
-package modulir
-
-`
+package modulir`
 
 // Target Go file to generate containing JS sources.
 const goTarget = "./js.go"
 
-const goTemplate = `// Source: %s
-const %sJS = "%s";
+// Go code for each file. Note that we have leading newlines instead of
+// trailing so that Gofmt doesn't have to change anything.
+const goTemplate = `
 
-`
+// Source: %s
+const %sJS = "%s"`
 
 // Directory containing JavaScript sources.
 const jsSource = "./js"
