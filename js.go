@@ -23,7 +23,7 @@ const websocketJS = "function connect() {\n" +
 	"    // Set an interval to continue trying to reconnect periodically until we\n" +
 	"    // succeed.\n" +
 	"    setTimeout(function() {\n" +
-	"        connect();\n" +
+	"      connect();\n" +
 	"    }, 5000)\n" +
 	"  }\n" +
 	"\n" +
