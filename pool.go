@@ -75,6 +75,7 @@ type Pool struct {
 	// JobsExecuted is a slice of jobs that were executed on the last run.
 	JobsExecuted []*Job
 
+	colorizer      *colorizer
 	concurrency    int
 	initialized    bool
 	jobsInternal   chan *Job
@@ -92,7 +93,10 @@ type Pool struct {
 // concurrency. It calls Init so that the pool is fully spun up and ready to
 // start a round.
 func NewPool(log LoggerInterface, concurrency int) *Pool {
+	// By default a pool gets a no-op colorizer. NewContext may set one
+	// separately for pools created within the package.
 	pool := &Pool{
+		colorizer:   &colorizer{LogColor: false},
 		concurrency: concurrency,
 		log:         log,
 	}
@@ -195,10 +199,15 @@ func (p *Pool) LogErrorsSlice(errors []error) {
 		job, ok := err.(*Job)
 
 		if ok {
-			p.log.Errorf("Job error: %v (job: '%s', time: %v)",
+			p.log.Errorf(
+				p.colorizer.Bold(p.colorizer.Red("Job error:")).String() +
+					"%v (job: '%s', time: %v)",
 				job.Err, job.Name, job.Duration)
 		} else {
-			p.log.Errorf("Build error: %v", err)
+			p.log.Errorf(
+				p.colorizer.Bold(p.colorizer.Red("Build error:")).String() +
+					"%v",
+				err)
 		}
 
 		if i >= maxMessages-1 {
@@ -225,7 +234,10 @@ func (p *Pool) LogSlowestSlice(jobs []*Job) {
 			p.log.Infof("Jobs executed (slowest first):")
 		}
 
-		p.log.Infof("    %s (time: %v)", job.Name, job.Duration)
+		p.log.Infof(
+			p.colorizer.Bold(p.colorizer.Cyan("    %s")).String()+
+				" (time: %v)",
+			job.Name, job.Duration)
 
 		if i >= maxMessages-1 {
 			p.log.Infof("... many jobs executed (limit reached)")

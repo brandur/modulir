@@ -37,6 +37,12 @@ type Config struct {
 	// Defaults to an instance of Logger running at informational level.
 	Log LoggerInterface
 
+	// LogColor specifies whether messages sent to Log should be color. You may
+	// want to set to true if you know output is going to a terminal.
+	//
+	// Defaults to false.
+	LogColor bool
+
 	// Port specifies the port on which to serve content from TargetDir over
 	// HTTP.
 	//
@@ -171,7 +177,9 @@ func build(c *Context, f func(*Context) []error,
 		c.Pool.LogErrorsSlice(errors)
 		c.Pool.LogSlowestSlice(c.Stats.JobsExecuted)
 
-		c.Log.Infof("Built site in %s (%v / %v job(s) did work; %v errored; loop took %v)",
+		c.Log.Infof(
+			c.colorizer.Bold(c.colorizer.Green("Built site in %s")).String()+
+				" (%v / %v job(s) did work; %v errored; loop took %v)",
 			buildDuration,
 			c.Stats.NumJobsExecuted, c.Stats.NumJobs, c.Stats.NumJobsErrored,
 			c.Stats.LoopDuration)
@@ -246,6 +254,7 @@ func initContext(config *Config, watcher *fsnotify.Watcher) *Context {
 
 	return NewContext(&Args{
 		Log:       config.Log,
+		LogColor:  config.LogColor,
 		Port:      config.Port,
 		Pool:      NewPool(config.Log, config.Concurrency),
 		SourceDir: config.SourceDir,
