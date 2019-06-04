@@ -181,7 +181,7 @@ func build(c *Context, f func(*Context) []error,
 			c.colorizer.Bold(c.colorizer.Green("Built site in %s")).String()+
 				" (%v / %v job(s) did work; %v errored; loop took %v)",
 			buildDuration.Truncate(100*time.Microsecond),
-			c.Stats.NumJobsExecuted, c.Stats.NumJobs, c.Stats.NumJobsErrored,
+			len(c.Stats.JobsExecuted), c.Stats.NumJobs, len(c.Stats.JobsErrored),
 			c.Stats.LoopDuration.Truncate(100*time.Microsecond))
 
 		lastChangedSources = nil
