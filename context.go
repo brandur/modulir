@@ -242,7 +242,11 @@ func (c *Context) Wait() []error {
 	// Wait for work to finish.
 	c.Pool.Wait()
 
-	c.Stats.JobsErrored = c.Pool.JobsErrored
+	// Note use of append even though we always expect the current set to be
+	// empty so that the slice is duplicated and not affect by it source being
+	// reset by `StartRound` below.
+	c.Stats.JobsErrored = append(c.Stats.JobsErrored, c.Pool.JobsErrored...)
+
 	c.Stats.JobsExecuted = append(c.Stats.JobsExecuted, c.Pool.JobsExecuted...)
 	c.Stats.NumJobs += len(c.Pool.JobsAll)
 
