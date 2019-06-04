@@ -180,9 +180,9 @@ func build(c *Context, f func(*Context) []error,
 		c.Log.Infof(
 			c.colorizer.Bold(c.colorizer.Green("Built site in %s")).String()+
 				" (%v / %v job(s) did work; %v errored; loop took %v)",
-			buildDuration,
+			buildDuration.Truncate(100*time.Microsecond),
 			c.Stats.NumJobsExecuted, c.Stats.NumJobs, c.Stats.NumJobsErrored,
-			c.Stats.LoopDuration)
+			c.Stats.LoopDuration.Truncate(100*time.Microsecond))
 
 		lastChangedSources = nil
 		c.QuickPaths = nil
