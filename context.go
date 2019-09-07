@@ -103,6 +103,10 @@ type Context struct {
 
 	// fileModTimeCache remembers the last modified times of files.
 	fileModTimeCache *fileModTimeCache
+
+	// numWatched is the number of files being watched by this context (useful
+	// for debugging "too many open files" problems).
+	numWatched int
 }
 
 // NewContext initializes and returns a new Context.
@@ -192,7 +196,8 @@ func (c *Context) Changed(path string) bool {
 	if c.Watcher != nil {
 		err := c.addWatched(fileInfo, path)
 		if err != nil {
-			c.Log.Errorf("Error watching source: %v", err)
+			c.Log.Errorf("Error watching source: %v (num watched files is %v)",
+				err, c.numWatched)
 		}
 	}
 
@@ -278,6 +283,7 @@ func (c *Context) addWatched(fileInfo os.FileInfo, absolutePath string) error {
 		absolutePath = filepath.Dir(absolutePath)
 	}
 
+	c.numWatched++
 	return c.Watcher.Add(absolutePath)
 }
 
