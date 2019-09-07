@@ -202,7 +202,10 @@ func (c *Context) Changed(path string) bool {
 	if c.Watcher != nil {
 		err := c.addWatched(fileInfo, path)
 		if err != nil {
-			c.Log.Errorf("Error watching source: %v (num watched files is %v)",
+			// Unfortunately the number shown here is misleading because
+			// fsnotify may have recursively added a bunch of file watches
+			// under a directory.
+			c.Log.Errorf("Error watching source: %v (num watches is %v)",
 				err, len(c.watchedPaths))
 		}
 	}
@@ -285,11 +288,9 @@ func (c *Context) Wait() []error {
 func (c *Context) addWatched(fileInfo os.FileInfo, absolutePath string) error {
 	// Watch the parent directory unless the file is a directory itself. This
 	// will hopefully mean fewer individual entries in the notifier.
-	/*
-		if !fileInfo.IsDir() {
-			absolutePath = filepath.Dir(absolutePath)
-		}
-	*/
+	if !fileInfo.IsDir() {
+		absolutePath = filepath.Dir(absolutePath)
+	}
 
 	absolutePath = filepath.Clean(absolutePath)
 
