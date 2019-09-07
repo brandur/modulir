@@ -104,9 +104,14 @@ type Context struct {
 	// fileModTimeCache remembers the last modified times of files.
 	fileModTimeCache *fileModTimeCache
 
-	// numWatched is the number of files being watched by this context (useful
-	// for debugging "too many open files" problems).
-	numWatched int
+	// watchedPaths are the set of paths that we're currently watching. This
+	// information is tracked internally by fsnotify as well, but we track it here
+	// as well to help with debugging (for "too many open files" problems and the
+	// like).
+	watchedPaths map[string]struct{}
+
+	// watchedPathsMu synchronizes concurrent access to watchedPaths.
+	watchedPathsMu sync.RWMutex
 }
 
 // NewContext initializes and returns a new Context.
@@ -126,6 +131,7 @@ func NewContext(args *Args) *Context {
 
 		colorizer:        &colorizer{LogColor: args.LogColor},
 		fileModTimeCache: NewFileModTimeCache(args.Log),
+		watchedPaths:     make(map[string]struct{}),
 	}
 
 	if args.Pool != nil {
@@ -197,7 +203,7 @@ func (c *Context) Changed(path string) bool {
 		err := c.addWatched(fileInfo, path)
 		if err != nil {
 			c.Log.Errorf("Error watching source: %v (num watched files is %v)",
-				err, c.numWatched)
+				err, len(c.watchedPaths))
 		}
 	}
 
@@ -279,12 +285,31 @@ func (c *Context) Wait() []error {
 func (c *Context) addWatched(fileInfo os.FileInfo, absolutePath string) error {
 	// Watch the parent directory unless the file is a directory itself. This
 	// will hopefully mean fewer individual entries in the notifier.
-	if !fileInfo.IsDir() {
-		absolutePath = filepath.Dir(absolutePath)
+	/*
+		if !fileInfo.IsDir() {
+			absolutePath = filepath.Dir(absolutePath)
+		}
+	*/
+
+	absolutePath = filepath.Clean(absolutePath)
+
+	c.watchedPathsMu.RLock()
+	_, ok := c.watchedPaths[absolutePath]
+	c.watchedPathsMu.RUnlock()
+	if ok {
+		return nil
 	}
 
-	c.numWatched++
-	return c.Watcher.Add(absolutePath)
+	err := c.Watcher.Add(absolutePath)
+	if err != nil {
+		return err
+	}
+
+	c.watchedPathsMu.Lock()
+	c.watchedPaths[absolutePath] = struct{}{}
+	c.watchedPathsMu.Unlock()
+
+	return nil
 }
 
 // Stats tracks various statistics about the build process.
