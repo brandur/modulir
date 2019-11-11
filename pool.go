@@ -141,11 +141,12 @@ func (p *Pool) Init() {
 
 			p.setWorkerState(workerNum, workerStateWaitingOnRunOrStop, nil)
 
+		outerLoop:
 			for {
 				select {
 				case <-p.runGate:
 				case <-p.stop:
-					break
+					break outerLoop
 				}
 
 				p.workForRound(workerNum)
