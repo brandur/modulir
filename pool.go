@@ -152,7 +152,7 @@ func (p *Pool) Init() {
 				p.workForRound(workerNum)
 			}
 
-			p.setWorkerState(workerNum, workerStateFinished, nil)
+			p.setWorkerState(workerNum, workerStateStopped, nil)
 		}()
 	}
 
@@ -460,9 +460,9 @@ type workerState string
 // The possible states that a worker can be in. Used for debugging purposes
 // only.
 const (
-	workerStateFinished           workerState = "worker_finished"
 	workerStateJobExecuting       workerState = "job_executing"
 	workerStateJobFinished        workerState = "job_finished"
+	workerStateStopped            workerState = "stopped"
 	workerStateWaitingOnRunOrStop workerState = "waiting_on_run_or_stop"
 )
 
