@@ -117,7 +117,6 @@ func (p *Pool) Init() {
 	p.initialized = true
 	p.runGate = make(chan struct{})
 	p.stop = make(chan struct{})
-
 	p.workerInfos = make([]workerInfo, p.concurrency)
 
 	// Allows us to block this function until all Goroutines have successfully
@@ -288,6 +287,10 @@ func (p *Pool) StartRound() {
 	p.jobsFeederDone = make(chan struct{})
 	p.jobsInternal = make(chan *Job, 500)
 	p.roundStarted = true
+
+	for _, info := range p.workerInfos {
+		info.numJobsFinished = 0
+	}
 
 	// Close the run gate to signal to the workers and job feeder that they can
 	// start this round.
