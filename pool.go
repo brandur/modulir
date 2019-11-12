@@ -328,7 +328,7 @@ func (p *Pool) Wait() bool {
 	go func() {
 		select {
 		case <-time.After(waitSoftTimeout):
-			p.printWaitTimeoutInfo()
+			p.logWaitTimeoutInfo()
 		case <-done:
 		}
 	}()
@@ -351,7 +351,7 @@ func (p *Pool) Wait() bool {
 	return true
 }
 
-func (p *Pool) printWaitTimeoutInfo() {
+func (p *Pool) logWaitTimeoutInfo() {
 	p.log.Errorf(
 		"Wait soft timeout (jobs total: %v, executed: %v, errored: %v, left: %v)",
 		len(p.JobsAll),
