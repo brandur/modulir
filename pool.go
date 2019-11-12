@@ -87,10 +87,7 @@ type Pool struct {
 	runGate        chan struct{}
 	stop           chan struct{}
 	wg             sync.WaitGroup
-
-	// Current state of workers. Used for debugging.
-	workerJobs   []*Job
-	workerStates []workerState
+	workerInfos    []workerInfo
 }
 
 // NewPool initializes a new pool with the given jobs and at the given
@@ -121,8 +118,7 @@ func (p *Pool) Init() {
 	p.runGate = make(chan struct{})
 	p.stop = make(chan struct{})
 
-	p.workerJobs = make([]*Job, p.concurrency)
-	p.workerStates = make([]workerState, p.concurrency)
+	p.workerInfos = make([]workerInfo, p.concurrency)
 
 	// Allows us to block this function until all Goroutines have successfully
 	// spun up.
@@ -360,22 +356,24 @@ func (p *Pool) printWaitTimeoutInfo() {
 		len(p.JobsErrored),
 		len(p.jobsInternal),
 	)
-	for i := 0; i < p.concurrency; i++ {
-		workerJob := "<none>"
-		if p.workerJobs[i] != nil {
-			workerJob = p.workerJobs[i].Name
+	for i, info := range p.workerInfos {
+		jobName := "<none>"
+		if info.activeJob != nil {
+			jobName = info.activeJob.Name
 		}
 
-		workerState := p.workerStates[i]
-
-		p.log.Errorf("    Worker %v state: %v, job: %v",
-			i, workerState, workerJob)
+		p.log.Errorf("    Worker %v state: %v, jobs finished: %v, job: %v",
+			i, info.state, info.numJobsFinished, jobName)
 	}
 }
 
 func (p *Pool) setWorkerState(workerNum int, state workerState, job *Job) {
-	p.workerJobs[workerNum] = job
-	p.workerStates[workerNum] = state
+	p.workerInfos[workerNum].activeJob = job
+	p.workerInfos[workerNum].state = state
+
+	if state == workerStateJobFinished {
+		p.workerInfos[workerNum].numJobsFinished += 1
+	}
 }
 
 // The work loop for a single round within a single worker Goroutine.
@@ -454,6 +452,14 @@ const (
 	// debugging purposes.
 	waitSoftTimeout = 60 * time.Second
 )
+
+// Keeps track of the information on a worker. Used for debugging purposes
+// only.
+type workerInfo struct {
+	activeJob       *Job
+	numJobsFinished int
+	state           workerState
+}
 
 // Keeps track of the state of a worker. Used for debugging purposes only.
 type workerState string
