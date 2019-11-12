@@ -351,6 +351,50 @@ func (p *Pool) Wait() bool {
 	return true
 }
 
+//////////////////////////////////////////////////////////////////////////////
+//
+//
+//
+// Private
+//
+//
+//
+//////////////////////////////////////////////////////////////////////////////
+
+const (
+	// When to report that a job is probably timed out. We call it a "soft"
+	// timeout because we can't actually kill jobs.
+	jobSoftTimeout = 15 * time.Second
+
+	// Maximum number of errors or jobs to print on screen after a build loop.
+	maxMessages = 10
+
+	// When to report that a wait round is probably timed out. We call it a
+	// "soft" timeout because no jobs are killed -- it's just for reporting and
+	// debugging purposes.
+	waitSoftTimeout = 60 * time.Second
+)
+
+// Keeps track of the information on a worker. Used for debugging purposes
+// only.
+type workerInfo struct {
+	activeJob       *Job
+	numJobsFinished int
+	state           workerState
+}
+
+// Keeps track of the state of a worker. Used for debugging purposes only.
+type workerState string
+
+// The possible states that a worker can be in. Used for debugging purposes
+// only.
+const (
+	workerStateJobExecuting       workerState = "job_executing"
+	workerStateJobFinished        workerState = "job_finished"
+	workerStateStopped            workerState = "stopped"
+	workerStateWaitingOnRunOrStop workerState = "waiting_on_run_or_stop"
+)
+
 func (p *Pool) logWaitTimeoutInfo() {
 	p.log.Errorf(
 		"Wait soft timeout (jobs total: %v, executed: %v, errored: %v, left: %v)",
@@ -377,6 +421,13 @@ func (p *Pool) setWorkerState(workerNum int, state workerState, job *Job) {
 	if state == workerStateJobFinished {
 		p.workerInfos[workerNum].numJobsFinished += 1
 	}
+}
+
+// Sorts a slice of jobs with the slowest on top.
+func sortJobsBySlowest(jobs []*Job) {
+	sort.Slice(jobs, func(i, j int) bool {
+		return jobs[j].Duration < jobs[i].Duration
+	})
 }
 
 // The work loop for a single round within a single worker Goroutine.
@@ -430,55 +481,4 @@ func (p *Pool) workForRound(workerNum int) {
 		// Unset active job
 		p.setWorkerState(workerNum, workerStateJobFinished, nil)
 	}
-}
-
-//////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-// Private
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-
-const (
-	// When to report that a job is probably timed out. We call it a "soft"
-	// timeout because we can't actually kill jobs.
-	jobSoftTimeout = 15 * time.Second
-
-	// Maximum number of errors or jobs to print on screen after a build loop.
-	maxMessages = 10
-
-	// When to report that a wait round is probably timed out. We call it a
-	// "soft" timeout because no jobs are killed -- it's just for reporting and
-	// debugging purposes.
-	waitSoftTimeout = 60 * time.Second
-)
-
-// Keeps track of the information on a worker. Used for debugging purposes
-// only.
-type workerInfo struct {
-	activeJob       *Job
-	numJobsFinished int
-	state           workerState
-}
-
-// Keeps track of the state of a worker. Used for debugging purposes only.
-type workerState string
-
-// The possible states that a worker can be in. Used for debugging purposes
-// only.
-const (
-	workerStateJobExecuting       workerState = "job_executing"
-	workerStateJobFinished        workerState = "job_finished"
-	workerStateStopped            workerState = "stopped"
-	workerStateWaitingOnRunOrStop workerState = "waiting_on_run_or_stop"
-)
-
-// Sorts a slice of jobs with the slowest on top.
-func sortJobsBySlowest(jobs []*Job) {
-	sort.Slice(jobs, func(i, j int) bool {
-		return jobs[j].Duration < jobs[i].Duration
-	})
 }
