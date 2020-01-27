@@ -187,9 +187,9 @@ func build(c *Context, f func(*Context) []error,
 			calculateTotalDuration(c.Stats.JobsExecuted).Truncate(100*time.Microsecond),
 		)
 		c.Log.Infof(
-			"%v of %v job(s) did work; "+
+			"%v of %v job(s) did work in %v round(s); "+
 				c.colorizer.Bold(colorByStatus(c, "%v errored", success)).String(),
-			len(c.Stats.JobsExecuted), c.Stats.NumJobs, len(c.Stats.JobsErrored),
+			len(c.Stats.JobsExecuted), c.Stats.NumJobs, c.Stats.NumRounds, len(c.Stats.JobsErrored),
 		)
 
 		lastChangedSources = nil

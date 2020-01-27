@@ -288,8 +288,8 @@ func (p *Pool) StartRound() {
 	p.jobsInternal = make(chan *Job, 500)
 	p.roundStarted = true
 
-	for _, info := range p.workerInfos {
-		info.numJobsFinished = 0
+	for i := range p.workerInfos {
+		p.workerInfos[i].reset()
 	}
 
 	// Close the run gate to signal to the workers and job feeder that they can
@@ -378,9 +378,24 @@ const (
 // Keeps track of the information on a worker. Used for debugging purposes
 // only.
 type workerInfo struct {
-	activeJob       *Job
+	activeJob *Job
+	state     workerState
+
+	// Number of jobs finished is the total number that the worker "saw" as it
+	// was running this round, so it includes errored jobs as well as jobs that
+	// didn't "execute", which means that they were given a chance to run, but
+	// decided no changes were required and therefore didn't do any serious
+	// work.
+	numJobsErrored  int
+	numJobsExecuted int
 	numJobsFinished int
-	state           workerState
+}
+
+// Resets statistics for the worker info.
+func (wi *workerInfo) reset() {
+	wi.numJobsErrored = 0
+	wi.numJobsExecuted = 0
+	wi.numJobsFinished = 0
 }
 
 // Keeps track of the state of a worker. Used for debugging purposes only.
@@ -396,31 +411,36 @@ const (
 )
 
 func (p *Pool) logWaitTimeoutInfo() {
+	// We don't have an easy channel to count on for this number, so sum the
+	// numbers across all workers.
+	numJobsFinished := 0
+	for _, info := range p.workerInfos {
+		numJobsFinished += info.numJobsFinished
+	}
+
 	p.log.Errorf(
-		"Wait soft timeout (jobs total: %v, executed: %v, errored: %v, left: %v)",
+		"Wait soft timeout (jobs queued: %v, finished: %v, errored: %v, executed: %v, left: %v)",
 		len(p.JobsAll),
-		len(p.JobsExecuted),
+		numJobsFinished,
 		len(p.JobsErrored),
+		len(p.JobsExecuted),
 		len(p.jobsInternal),
 	)
+
 	for i, info := range p.workerInfos {
 		jobName := "<none>"
 		if info.activeJob != nil {
 			jobName = info.activeJob.Name
 		}
 
-		p.log.Errorf("    Worker %v state: %v, jobs finished: %v, job: %v",
-			i, info.state, info.numJobsFinished, jobName)
+		p.log.Errorf("    Worker %v state: %v, jobs finished: %v, errored: %v, executed: %v, job: %v",
+			i, info.state, info.numJobsFinished, info.numJobsErrored, info.numJobsExecuted, jobName)
 	}
 }
 
 func (p *Pool) setWorkerState(workerNum int, state workerState, job *Job) {
 	p.workerInfos[workerNum].activeJob = job
 	p.workerInfos[workerNum].state = state
-
-	if state == workerStateJobFinished {
-		p.workerInfos[workerNum].numJobsFinished += 1
-	}
 }
 
 // Sorts a slice of jobs with the slowest on top.
@@ -460,12 +480,16 @@ func (p *Pool) workForRound(workerNum int) {
 		// Kill the timeout Goroutine.
 		done <- struct{}{}
 
+		p.workerInfos[workerNum].numJobsFinished += 1
+
 		if err != nil {
 			job.Err = err
 
 			p.jobsErroredMu.Lock()
 			p.JobsErrored = append(p.JobsErrored, job)
 			p.jobsErroredMu.Unlock()
+
+			p.workerInfos[workerNum].numJobsErrored += 1
 		}
 
 		if executed {
@@ -474,6 +498,8 @@ func (p *Pool) workForRound(workerNum int) {
 			p.jobsExecutedMu.Lock()
 			p.JobsExecuted = append(p.JobsExecuted, job)
 			p.jobsExecutedMu.Unlock()
+
+			p.workerInfos[workerNum].numJobsExecuted += 1
 		}
 
 		p.wg.Done()

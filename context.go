@@ -257,12 +257,13 @@ func (c *Context) Wait() []error {
 	c.Pool.Wait()
 
 	// Note use of append even though we always expect the current set to be
-	// empty so that the slice is duplicated and not affect by it source being
-	// reset by `StartRound` below.
+	// empty so that the slice is duplicated and not affected by its source
+	// being reset by `StartRound` below.
 	c.Stats.JobsErrored = append(c.Stats.JobsErrored, c.Pool.JobsErrored...)
 
 	c.Stats.JobsExecuted = append(c.Stats.JobsExecuted, c.Pool.JobsExecuted...)
 	c.Stats.NumJobs += len(c.Pool.JobsAll)
+	c.Stats.NumRounds++
 
 	// Then start the pool again, which also has the side effect of
 	// reinitializing anything that needs to be reinitialized.
@@ -333,6 +334,11 @@ type Stats struct {
 	// NumJobs is the total number of jobs generated for the build loop.
 	NumJobs int
 
+	// NumRounds is the number of "rounds" in the build which are used in the
+	// case of multi-step builds where jobs from one round may depend on the
+	// result of jobs from other rounds.
+	NumRounds int
+
 	// Start is the start time of the build loop.
 	Start time.Time
 
@@ -346,6 +352,7 @@ func (s *Stats) Reset() {
 	s.JobsExecuted = nil
 	s.LoopDuration = time.Duration(0)
 	s.NumJobs = 0
+	s.NumRounds = 0
 	s.Start = time.Now()
 	s.lastLoopStart = time.Now()
 }
