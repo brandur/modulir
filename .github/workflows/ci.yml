@@ -1,0 +1,59 @@
+name: modulir CI
+
+on:
+  pull_request:
+  push:
+  schedule:
+    # ever day at 8 AM
+    - cron: "0 8 * * *"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13.x
+
+      - name: Install Golint
+        run: go get -u golang.org/x/lint/golint
+
+      - uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+          path: go/src/github.com/brandur/modulir
+
+      - name: Debug
+        run: |
+          echo "github.ref=${{ github.ref }}"
+          echo "go env GOPATH=$(go env GOPATH)"
+          echo "pwd=$(pwd)"
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
+          echo "HOME=${HOME}"
+
+      - name: "Go: Clean"
+        run: make clean
+
+      - name: "Go: Test"
+        run: make test
+
+      - name: "Go: Vet"
+        run: make vet
+
+      - name: "Check: Gofmt"
+        run: make check-gofmt
+
+      # Unfortunately there's some oddity in GitHub's environment that causes
+      # this to fail:
+      #
+      #     /home/runner/work/_temp/3939b8a1-56f2-4fd9-8434-1950a338feb7.sh: line 1: unexpected EOF while looking for matching `"'
+      #
+      # Action is probably to try converting to Go modules first and see if
+      # that resolves it.
+      #
+      # - name: "Check: Golint"
+      #   run: make lint"
+      #

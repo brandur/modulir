@@ -1,10 +1,13 @@
-all: test vet check-gofmt lint
+all: clean test vet check-gofmt lint
 
 check-gofmt:
 	scripts/check_gofmt.sh
 
+clean:
+	go clean ./...
+
 lint:
-	$(GOPATH)/bin/golint -set_exit_status `go list ./... | grep -v /vendor/`
+	$(shell go env GOPATH)/bin/golint -set_exit_status ./...
 
 test:
 	go test ./...
