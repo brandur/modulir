@@ -130,7 +130,7 @@ func NewContext(args *Args) *Context {
 		Websocket:   args.Websocket,
 
 		colorizer:        &colorizer{LogColor: args.LogColor},
-		fileModTimeCache: NewFileModTimeCache(args.Log),
+		fileModTimeCache: newFileModTimeCache(args.Log),
 		watchedPaths:     make(map[string]struct{}),
 	}
 
@@ -376,8 +376,8 @@ type fileModTimeCache struct {
 	pathToModTimeMapNew map[string]time.Time
 }
 
-// NewFileModTimeCache returns a new fileModTimeCache.
-func NewFileModTimeCache(log LoggerInterface) *fileModTimeCache {
+// newFileModTimeCache returns a new fileModTimeCache.
+func newFileModTimeCache(log LoggerInterface) *fileModTimeCache {
 	return &fileModTimeCache{
 		log:                 log,
 		pathToModTimeMap:    make(map[string]time.Time),

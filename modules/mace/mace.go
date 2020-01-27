@@ -12,6 +12,7 @@ import (
 	"github.com/yosssi/ace"
 )
 
+// Load loads an Ace template.
 func Load(c *modulir.Context, basePath, innerPath string, opts *ace.Options) (*template.Template, error) {
 	if opts == nil {
 		opts = &ace.Options{}

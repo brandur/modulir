@@ -10,6 +10,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// ParseFile is a shortcut from parsing a source file as YAML.
 func ParseFile(c *modulir.Context, source string, v interface{}) error {
 	raw, err := ioutil.ReadFile(source)
 	if err != nil {
@@ -25,6 +26,8 @@ func ParseFile(c *modulir.Context, source string, v interface{}) error {
 	return nil
 }
 
+// ParseFileFrontmatter is a shortcut from parsing a source file's frontmatter
+// (i.e. data at the top between `---` lines) as YAML.
 func ParseFileFrontmatter(c *modulir.Context, source string, v interface{}) ([]byte, error) {
 	data, err := ioutil.ReadFile(source)
 	if err != nil {

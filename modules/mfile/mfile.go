@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// CopyFile is a shortcut for copy a file from a source path to a target path.
 func CopyFile(c *modulir.Context, source, target string) error {
 	in, err := os.Open(source)
 	if err != nil {
@@ -34,10 +35,13 @@ func CopyFile(c *modulir.Context, source, target string) error {
 	return nil
 }
 
+// CopyFileToDir is a shortcut for copy a file from a source path to a target
+// directory.
 func CopyFileToDir(c *modulir.Context, source, targetDir string) error {
 	return CopyFile(c, source, path.Join(targetDir, filepath.Base(source)))
 }
 
+// EnsureDir ensures the existence of a target directory.
 func EnsureDir(c *modulir.Context, target string) error {
 	err := os.MkdirAll(target, 0755)
 	if err != nil {
@@ -48,6 +52,8 @@ func EnsureDir(c *modulir.Context, target string) error {
 	return nil
 }
 
+// EnsureSymlink ensures the existence of a symbolic link that maps a target
+// path to a source path.
 func EnsureSymlink(c *modulir.Context, source, target string) error {
 	c.Log.Debugf("Checking symbolic link (%v): %v -> %v",
 		path.Base(source), source, target)
@@ -107,14 +113,20 @@ create:
 	return nil
 }
 
+// IsBackup indicates whether a given filename is a backup file (i.e. prefixed
+// by `~`).
 func IsBackup(base string) bool {
 	return strings.HasSuffix(base, "~")
 }
 
+// IsHidden indicates whether a given filename is a hidden file (i.e. prefixed
+// by `.`).
 func IsHidden(base string) bool {
 	return strings.HasPrefix(base, ".")
 }
 
+// IsMeta indicates whether a given filename is a "meta" file (i.e. prefixed by
+// `_`).
 func IsMeta(base string) bool {
 	return strings.HasPrefix(base, "_")
 }
