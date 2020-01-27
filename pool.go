@@ -4,6 +4,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -134,7 +136,7 @@ func (p *Pool) Init() {
 		go func() {
 			wg.Done()
 
-			p.setWorkerState(workerNum, workerStateWaitingOnRunOrStop, nil)
+			p.workerInfos[workerNum].state = workerStateWaitingOnRunOrStop
 
 		outerLoop:
 			for {
@@ -147,7 +149,7 @@ func (p *Pool) Init() {
 				p.workForRound(workerNum)
 			}
 
-			p.setWorkerState(workerNum, workerStateStopped, nil)
+			p.workerInfos[workerNum].state = workerStateStopped
 		}()
 	}
 
@@ -406,6 +408,7 @@ type workerState string
 const (
 	workerStateJobExecuting       workerState = "job_executing"
 	workerStateJobFinished        workerState = "job_finished"
+	workerStatePanicked           workerState = "job_panicked"
 	workerStateStopped            workerState = "stopped"
 	workerStateWaitingOnRunOrStop workerState = "waiting_on_run_or_stop"
 )
@@ -438,9 +441,40 @@ func (p *Pool) logWaitTimeoutInfo() {
 	}
 }
 
-func (p *Pool) setWorkerState(workerNum int, state workerState, job *Job) {
+// Puts a finished job in the right channel and adds run statistics to the
+// worker's info.
+func (p *Pool) setWorkerJobFinished(workerNum int, job *Job, executed bool, err error) {
+	p.workerInfos[workerNum].numJobsFinished++
+
+	if err != nil {
+		job.Err = err
+
+		p.jobsErroredMu.Lock()
+		p.JobsErrored = append(p.JobsErrored, job)
+		p.jobsErroredMu.Unlock()
+
+		p.workerInfos[workerNum].numJobsErrored++
+	}
+
+	if executed {
+		job.Executed = true
+
+		p.jobsExecutedMu.Lock()
+		p.JobsExecuted = append(p.JobsExecuted, job)
+		p.jobsExecutedMu.Unlock()
+
+		p.workerInfos[workerNum].numJobsExecuted++
+	}
+
+	p.wg.Done()
+
+	p.workerInfos[workerNum].activeJob = nil
+	p.workerInfos[workerNum].state = workerStateJobFinished
+}
+
+func (p *Pool) setWorkerJobExecuting(workerNum int, job *Job) {
 	p.workerInfos[workerNum].activeJob = job
-	p.workerInfos[workerNum].state = state
+	p.workerInfos[workerNum].state = workerStateJobExecuting
 }
 
 // Sorts a slice of jobs with the slowest on top.
@@ -457,54 +491,60 @@ func (p *Pool) workForRound(workerNum int) {
 		// lifetime of the loop. Don't change this.
 		job := j
 
-		p.setWorkerState(workerNum, workerStateJobExecuting, job)
+		p.workJob(workerNum, job)
+	}
+}
 
-		// Start a Goroutine to track the time taken to do this work.
-		// Unfortunately, we can't actually kill a timed out Goroutine because
-		// Go (and we rely on the user to make sure these get fixed instead),
-		// but we can at least raise on the interface which job is problematic
-		// to help identify what needs to be fixed.
-		done := make(chan struct{}, 1)
-		go func() {
-			select {
-			case <-time.After(jobSoftTimeout):
-				p.log.Errorf("Job soft timeout (job: '%s')", job.Name)
-			case <-done:
-			}
-		}()
+// A worker working a single job. Extracted this way so that we can add a defer
+// that will help debug a panic.
+func (p *Pool) workJob(workerNum int, job *Job) {
+	p.setWorkerJobExecuting(workerNum, job)
 
-		start := time.Now()
-		executed, err := job.F()
+	// Start a Goroutine to track the time taken to do this work.
+	// Unfortunately, we can't actually kill a timed out Goroutine because
+	// Go (and we rely on the user to make sure these get fixed instead),
+	// but we can at least raise on the interface which job is problematic
+	// to help identify what needs to be fixed.
+	done := make(chan struct{}, 1)
+	go func() {
+		select {
+		case <-time.After(jobSoftTimeout):
+			p.log.Errorf("Job soft timeout (job: '%s')", job.Name)
+		case <-done:
+		}
+	}()
+
+	var executed bool
+	var jobErr error
+	start := time.Now()
+
+	defer func() {
 		job.Duration = time.Now().Sub(start)
 
 		// Kill the timeout Goroutine.
 		done <- struct{}{}
 
-		p.workerInfos[workerNum].numJobsFinished += 1
-
-		if err != nil {
-			job.Err = err
-
-			p.jobsErroredMu.Lock()
-			p.JobsErrored = append(p.JobsErrored, job)
-			p.jobsErroredMu.Unlock()
-
-			p.workerInfos[workerNum].numJobsErrored += 1
+		var panicked bool
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
+				jobErr = errors.Wrap(err, "Job panicked")
+			}
+			panicked = true
 		}
 
-		if executed {
-			job.Executed = true
+		p.setWorkerJobFinished(workerNum, job, executed, jobErr)
 
-			p.jobsExecutedMu.Lock()
-			p.JobsExecuted = append(p.JobsExecuted, job)
-			p.jobsExecutedMu.Unlock()
-
-			p.workerInfos[workerNum].numJobsExecuted += 1
+		// And set the special panicked worker status if we panicked
+		// because it means that this worker is down and no longer
+		// available.
+		//
+		// TODO: It is possible to hit a deadlock if all workers have
+		// panicked and there's still work left to do. The framework should
+		// detect this condition and exit.
+		if panicked {
+			p.workerInfos[workerNum].state = workerStatePanicked
 		}
+	}()
 
-		p.wg.Done()
-
-		// Unset active job
-		p.setWorkerState(workerNum, workerStateJobFinished, nil)
-	}
+	executed, jobErr = job.F()
 }
