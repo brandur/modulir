@@ -1,4 +1,4 @@
-# Modulir [![Build Status](https://github.com/brandur/modulir/workflows/sorg%20CI/badge.svg)](https://github.com/brandur/modulir/actions)
+# Modulir [![Build Status](https://github.com/brandur/modulir/workflows/modulir%20CI/badge.svg)](https://github.com/brandur/modulir/actions)
 
 Modulir is an experimental mini-framework for static site
 generation that suggests that a site's main build recipe
