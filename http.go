@@ -155,9 +155,9 @@ func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{
 		_, _, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err) {
-				c.Log.Infof(logPrefix(c, conn) + "Closed: %v", err)
+				c.Log.Infof(logPrefix(c, conn)+"Closed: %v", err)
 			} else {
-				c.Log.Errorf(logPrefix(c, conn) + "Error reading message: %v",
+				c.Log.Errorf(logPrefix(c, conn)+"Error reading message: %v",
 					err)
 			}
 			break
@@ -244,7 +244,7 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 		}
 
 		if writeErr != nil {
-			c.Log.Errorf(logPrefix(c, conn) + "Error writing: %v",
+			c.Log.Errorf(logPrefix(c, conn)+"Error writing: %v",
 				writeErr)
 			done = true
 		}
