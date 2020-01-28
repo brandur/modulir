@@ -136,7 +136,7 @@ func (p *Pool) Init() {
 		go func() {
 			wg.Done()
 
-			p.workerInfos[workerNum].state = workerStateWaitingOnRunOrStop
+			p.workerInfos[workerNum].reset()
 
 		outerLoop:
 			for {
@@ -347,6 +347,8 @@ func (p *Pool) Wait() bool {
 	// wait on the run gate.
 	close(p.jobsInternal)
 
+	//p.logWaitTimeoutInfo()
+
 	if p.JobsErrored != nil {
 		return false
 	}
@@ -395,6 +397,7 @@ type workerInfo struct {
 
 // Resets statistics for the worker info.
 func (wi *workerInfo) reset() {
+	wi.state = workerStateWaitingOnRunOrStop
 	wi.numJobsErrored = 0
 	wi.numJobsExecuted = 0
 	wi.numJobsFinished = 0
