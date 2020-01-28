@@ -340,7 +340,7 @@ type workerState string
 const (
 	workerStateJobExecuting       workerState = "job_executing"
 	workerStateJobFinished        workerState = "job_finished"
-	workerStatePanicked           workerState = "job_panicked"
+	workerStatePanicked           workerState = "panicked"
 	workerStateStopped            workerState = "stopped"
 	workerStateWaitingOnRunOrStop workerState = "waiting_on_run_or_stop"
 )
