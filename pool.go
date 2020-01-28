@@ -275,6 +275,7 @@ func (p *Pool) Wait() bool {
 	// wait on the run gate.
 	close(p.jobsInternal)
 
+	// Occasionally useful for debugging.
 	//p.logWaitTimeoutInfo()
 
 	if p.JobsErrored != nil {
