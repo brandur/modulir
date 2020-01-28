@@ -9,7 +9,6 @@ import (
 
 func TestEmptyPool(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 10)
-	defer p.Stop()
 
 	p.StartRound()
 	p.Wait()
@@ -22,7 +21,6 @@ func TestEmptyPool(t *testing.T) {
 
 func TestWithWork(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 10)
-	defer p.Stop()
 
 	p.StartRound()
 	j0 := NewJob("job 0", func() (bool, error) { return true, nil })
@@ -52,10 +50,9 @@ func TestWithWork(t *testing.T) {
 // rounds. Originally written to try to suss out a race condition.
 func TestWithLargeNonWork(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 30)
-	defer p.Stop()
 
 	numJobs := 300
-	numRounds := 5
+	numRounds := 50
 
 	for i := 0; i < numRounds; i++ {
 		p.StartRound()
@@ -74,7 +71,6 @@ func TestWithLargeNonWork(t *testing.T) {
 
 func TestWithError(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 10)
-	defer p.Stop()
 
 	p.StartRound()
 	j0 := NewJob("job 0", func() (bool, error) { return true, nil })

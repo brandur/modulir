@@ -86,8 +86,6 @@ type Pool struct {
 	jobsFeederDone chan struct{}
 	log            LoggerInterface
 	roundStarted   bool
-	runGate        chan struct{}
-	stop           chan struct{}
 	wg             sync.WaitGroup
 	workerInfos    []workerInfo
 }
@@ -102,80 +100,9 @@ func NewPool(log LoggerInterface, concurrency int) *Pool {
 		colorizer:   &colorizer{LogColor: false},
 		concurrency: concurrency,
 		log:         log,
+		workerInfos: make([]workerInfo, concurrency),
 	}
-	pool.Init()
 	return pool
-}
-
-// Init initializes the pool by preparing state and spinning up Goroutines. It
-// should only be called once per pool.
-func (p *Pool) Init() {
-	if p.initialized {
-		panic("Init called for a pool that's already been initialized")
-	}
-
-	p.log.Debugf("Initializing job pool at concurrency %v", p.concurrency)
-
-	p.initialized = true
-	p.runGate = make(chan struct{})
-	p.stop = make(chan struct{})
-	p.workerInfos = make([]workerInfo, p.concurrency)
-
-	// Allows us to block this function until all Goroutines have successfully
-	// spun up.
-	//
-	// There's a potential race condition when StartRound is called very
-	// quickly after Init and can close runGate before the Goroutines below
-	// have a chance to start selecting on it.
-	var wg sync.WaitGroup
-
-	// Worker Goroutines
-	wg.Add(p.concurrency)
-	for i := 0; i < p.concurrency; i++ {
-		workerNum := i
-		go func() {
-			wg.Done()
-
-			p.workerInfos[workerNum].reset()
-
-		outerLoop:
-			for {
-				select {
-				case <-p.runGate:
-				case <-p.stop:
-					break outerLoop
-				}
-
-				p.workForRound(workerNum)
-			}
-
-			p.workerInfos[workerNum].state = workerStateStopped
-		}()
-	}
-
-	// Job feeder
-	wg.Add(1)
-	go func() {
-		wg.Done()
-		for {
-			select {
-			case <-p.runGate:
-			case <-p.stop:
-				break
-			}
-
-			for job := range p.Jobs {
-				p.wg.Add(1)
-				p.jobsInternal <- job
-				p.JobsAll = append(p.JobsAll, job)
-			}
-
-			// Runs after Jobs has been closed.
-			p.jobsFeederDone <- struct{}{}
-		}
-	}()
-
-	wg.Wait()
 }
 
 // JobErrors is a shortcut from extracting all the errors out of JobsErrored,
@@ -257,36 +184,20 @@ func (p *Pool) LogSlowestSlice(jobs []*Job) {
 	}
 }
 
-// Stop disables and cleans up the pool by spinning down all Goroutines.
-func (p *Pool) Stop() {
-	if !p.initialized {
-		panic("Stop called for a pool that's not initialized")
-	}
-
-	if p.roundStarted {
-		panic("Stop should only be called after round has ended (hint: try calling Wait)")
-	}
-
-	p.initialized = false
-	p.stop <- struct{}{}
-}
-
 // StartRound begins an execution round. Internal statistics and other tracking
-// is all reset from the lsat one.
+// are all reset.
 func (p *Pool) StartRound() {
-	if !p.initialized {
-		panic("StartRound called for a pool that's not initialized (hint: call Init first)")
-	}
-
 	if p.roundStarted {
 		panic("StartRound already called (call Wait before calling it again)")
 	}
+
+	p.log.Debugf("pool: Starting round at concurrency %v", p.concurrency)
 
 	p.Jobs = make(chan *Job, 500)
 	p.JobsAll = nil
 	p.JobsErrored = nil
 	p.JobsExecuted = nil
-	p.jobsFeederDone = make(chan struct{})
+	p.jobsFeederDone = make(chan struct{}, 1)
 	p.jobsInternal = make(chan *Job, 500)
 	p.roundStarted = true
 
@@ -294,9 +205,29 @@ func (p *Pool) StartRound() {
 		p.workerInfos[i].reset()
 	}
 
-	// Close the run gate to signal to the workers and job feeder that they can
-	// start this round.
-	close(p.runGate)
+	// Job feeder
+	go func() {
+		p.log.Debugf("pool: Job feeder: Starting")
+
+		for job := range p.Jobs {
+			p.wg.Add(1)
+			p.jobsInternal <- job
+			p.JobsAll = append(p.JobsAll, job)
+		}
+
+		p.log.Debugf("pool: Job feeder: Finished feeding")
+
+		// Runs after Jobs has been closed.
+		close(p.jobsFeederDone)
+	}()
+
+	// Worker Goroutines
+	for i := 0; i < p.concurrency; i++ {
+		workerNum := i
+		go func() {
+			p.workForRound(workerNum)
+		}()
+	}
 }
 
 // Wait waits until all jobs are finished and stops the pool.
@@ -311,9 +242,6 @@ func (p *Pool) Wait() bool {
 	if !p.roundStarted {
 		panic("Can't wait on a job pool that's not primed (call StartRound first)")
 	}
-
-	// Create a new run gate which Goroutines will wait on for the next round.
-	p.runGate = make(chan struct{})
 
 	p.roundStarted = false
 
@@ -343,7 +271,7 @@ func (p *Pool) Wait() bool {
 	// Kill the timeout Goroutine.
 	done <- struct{}{}
 
-	// Drops workers out of their current round of work. They'll once again
+	// Drops workers out of their run loop. Their Goroutines return.
 	// wait on the run gate.
 	close(p.jobsInternal)
 
@@ -496,6 +424,8 @@ func (p *Pool) workForRound(workerNum int) {
 
 		p.workJob(workerNum, job)
 	}
+
+	p.workerInfos[workerNum].state = workerStateStopped
 }
 
 // A worker working a single job. Extracted this way so that we can add a defer
