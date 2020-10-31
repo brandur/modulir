@@ -2,7 +2,9 @@ package modulir
 
 import (
 	"path/filepath"
+	"reflect"
 	"strings"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -17,6 +19,10 @@ import (
 //
 //////////////////////////////////////////////////////////////////////////////
 
+// The time window in which *not* to trigger a rebuild if the next set of
+// detected changes are on exactly the same files as the last.
+const sameFileQuiesceTime = 100 * time.Millisecond
+
 // Listens for file system changes from fsnotify and pushes relevant ones back
 // out over the rebuild channel.
 //
@@ -25,6 +31,9 @@ import (
 // fast consecutive changes the build might not be perfectly up to date.
 func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan error,
 	rebuild chan map[string]struct{}, rebuildDone chan struct{}) {
+
+	var changedSources, lastChangedSources map[string]struct{}
+	var lastRebuild time.Time
 
 	for {
 		select {
@@ -35,7 +44,8 @@ func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan 
 			}
 
 			c.Log.Debugf("Received event from watcher: %+v", event)
-			lastChangedSources := map[string]struct{}{event.Name: {}}
+			lastChangedSources = changedSources
+			changedSources = map[string]struct{}{event.Name: {}}
 
 			if !shouldRebuild(event.Name, event.Op) {
 				continue
@@ -59,15 +69,44 @@ func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan 
 			// The overwhelmingly common case will be few files being changed,
 			// and therefore the inner for almost never needs to loop.
 			for {
-				if len(lastChangedSources) < 1 {
+				if len(changedSources) < 1 {
 					break
 				}
 
-				// Start rebuild
-				rebuild <- lastChangedSources
+				// If the detect changes are identical to the last set of
+				// changes we just processed and we're within a certain quiesce
+				// time, *don't* trigger another rebuild and just go back to
+				// steady state.
+				//
+				// This is to protect against a problem where for a single save
+				// operation, the watcher occasionally picks up a number of
+				// events on the same file in quick succession, but not *so*
+				// quick that the build can't finish before the next one comes
+				// in. The faster the build, the more often this is a problem.
+				//
+				// I'm not sure why this occurs, but protect against it.
+				if lastChangedSources != nil &&
+					time.Now().Add(-sameFileQuiesceTime).Before(lastRebuild) &&
+					// Acts as a quick compare so avoid using DeepEqual if possible
+					len(lastChangedSources) == len(changedSources) &&
+					reflect.DeepEqual(lastChangedSources, changedSources) {
 
-				// Zero out the last set of changes and start accumulating.
-				lastChangedSources = nil
+					c.Log.Infof("Identical file(s) %v changed within quiesce time; not rebuilding",
+						mapKeys(changedSources))
+					break
+				}
+
+				lastRebuild = time.Now()
+
+				// Start rebuild
+				rebuild <- changedSources
+
+				// Zero out the set of changes and start accumulating.
+				//
+				// Keep a pointer to it so that we can compare it to any new
+				// set of changes.
+				lastChangedSources = changedSources
+				changedSources = nil
 
 				// Wait until rebuild is finished. In the meantime, accumulate
 				// new events that come in on the watcher's channel and prepare
@@ -89,11 +128,11 @@ func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan 
 							continue
 						}
 
-						if lastChangedSources == nil {
-							lastChangedSources = make(map[string]struct{})
+						if changedSources == nil {
+							changedSources = make(map[string]struct{})
 						}
 
-						lastChangedSources[event.Name] = struct{}{}
+						changedSources[event.Name] = struct{}{}
 
 					case err, ok := <-watchErrors:
 						if !ok {
