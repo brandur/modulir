@@ -19,9 +19,6 @@ import (
 //
 //////////////////////////////////////////////////////////////////////////////
 
-// The time window in which *not* to trigger a rebuild if the next set of
-// detected changes are on exactly the same files as the last.
-const sameFileQuiesceTime = 100 * time.Millisecond
 
 // Listens for file system changes from fsnotify and pushes relevant ones back
 // out over the rebuild channel.
@@ -85,12 +82,7 @@ func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan 
 				// in. The faster the build, the more often this is a problem.
 				//
 				// I'm not sure why this occurs, but protect against it.
-				if lastChangedSources != nil &&
-					time.Now().Add(-sameFileQuiesceTime).Before(lastRebuild) &&
-					// Acts as a quick compare so avoid using DeepEqual if possible
-					len(lastChangedSources) == len(changedSources) &&
-					reflect.DeepEqual(lastChangedSources, changedSources) {
-
+				if buildWithinSameFileQuiesce(lastRebuild, time.Now(), changedSources, lastChangedSources) {
 					c.Log.Infof("Identical file(s) %v changed within quiesce time; not rebuilding",
 						mapKeys(changedSources))
 					break
@@ -163,6 +155,30 @@ func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan 
 //
 //
 //////////////////////////////////////////////////////////////////////////////
+
+// The time window in which *not* to trigger a rebuild if the next set of
+// detected changes are on exactly the same files as the last.
+const sameFileQuiesceTime = 100 * time.Millisecond
+
+// See comment over this function's invocation.
+func buildWithinSameFileQuiesce(lastRebuild, now time.Time,
+	changedSources, lastChangedSources map[string]struct{}) bool {
+
+	if lastChangedSources == nil {
+		return false
+	}
+
+	if now.Add(-sameFileQuiesceTime).After(lastRebuild) {
+		return false
+	}
+
+	// Acts as a quick compare so avoid using DeepEqual if possible
+	if len(lastChangedSources) != len(changedSources) {
+		return false
+	}
+
+	return reflect.DeepEqual(lastChangedSources, changedSources)
+}
 
 // Decides whether a rebuild should be triggered given some input event
 // properties from fsnotify.

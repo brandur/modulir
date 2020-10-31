@@ -8,6 +8,34 @@ import (
 	assert "github.com/stretchr/testify/require"
 )
 
+func TestBuildWithinSameFileQuiesce(t *testing.T) {
+	baseTime := time.Now()
+
+	lastChanges := map[string]struct{}{"a/path": {}}
+	sameLastChanges := map[string]struct{}{"a/path": {}}
+	diffLastChanges := map[string]struct{}{"b/path": {}}
+
+	// No last changes
+	assert.False(t, buildWithinSameFileQuiesce(
+		baseTime, baseTime, lastChanges, nil,
+	))
+
+	// Rebuild after quiesce time
+	assert.False(t, buildWithinSameFileQuiesce(
+		baseTime, baseTime.Add(10*time.Second), lastChanges, sameLastChanges,
+	))
+
+	// Different set of canges
+	assert.False(t, buildWithinSameFileQuiesce(
+		baseTime, baseTime, lastChanges, diffLastChanges,
+	))
+
+	// Within quiesce time and same set of changes
+	assert.True(t, buildWithinSameFileQuiesce(
+		baseTime, baseTime, lastChanges, sameLastChanges,
+	))
+}
+
 func TestShouldRebuild(t *testing.T) {
 	// Most things signal a rebuild
 	assert.Equal(t, true, shouldRebuild("a/path", fsnotify.Create))
