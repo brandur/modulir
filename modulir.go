@@ -148,9 +148,6 @@ func build(c *Context, f func(*Context) []error,
 			rebuild, rebuildDone)
 	}
 
-	c.Pool.StartRound()
-	c.Jobs = c.Pool.Jobs
-
 	// Paths that changed on the last loop (as discovered via fsnotify). If
 	// set, we go into quick build mode with only these paths activated, and
 	// unset them afterwards. This saves us doing lots of checks on the
@@ -160,6 +157,7 @@ func build(c *Context, f func(*Context) []error,
 	for {
 		c.Log.Debugf("Start loop")
 		c.ResetBuild()
+		c.StartRound()
 
 		if lastChangedSources != nil {
 			c.QuickPaths = lastChangedSources
@@ -167,7 +165,18 @@ func build(c *Context, f func(*Context) []error,
 
 		errors := f(c)
 
-		lastRoundErrors := c.Wait()
+		var lastRoundErrors []error
+
+		// Do one wait round as the build loop might not have waited on its
+		// last phase, but only bother if it looks like any jobs were enqueued.
+		if len(c.Pool.Jobs) > 0 {
+			lastRoundErrors = c.Wait()
+		}
+
+		// Context's Wait restarts the pool, so wait on that one more time to
+		// shut it back down.
+		c.Pool.Wait()
+
 		buildDuration := time.Now().Sub(c.Stats.Start)
 
 		if lastRoundErrors != nil {

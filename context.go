@@ -233,8 +233,27 @@ func (c *Context) ChangedAny(paths ...string) bool {
 // ResetBuild signals to the Context to do the bookkeeping it needs to do for
 // the next build round.
 func (c *Context) ResetBuild() {
+	c.Log.Debugf("Context ResetBuild()")
 	c.Stats.Reset()
 	c.fileModTimeCache.promote()
+}
+
+// StartRound starts a new round for the context, also starting it on its
+// attached job pool.
+func (c *Context) StartRound() {
+	c.Log.Debugf("Context StartRound()")
+
+	// Value before we increment to keep round number zero-indexed
+	roundNum := c.Stats.NumRounds
+
+	c.Stats.NumRounds++
+
+	// Then start the pool again, which also has the side effect of
+	// reinitializing anything that needs to be reinitialized.
+	c.Pool.StartRound(roundNum)
+
+	// This channel is reinitialized, so make sure to pull in the new one.
+	c.Jobs = c.Pool.Jobs
 }
 
 // Wait waits on the job pool to execute its current round of jobs.
@@ -245,6 +264,8 @@ func (c *Context) ResetBuild() {
 // Returns nil if the round of jobs executed successfully, and a set of errors
 // that occurred otherwise.
 func (c *Context) Wait() []error {
+	c.Log.Debugf("Context Wait(); jobs queued: %v", len(c.Pool.Jobs))
+
 	c.Stats.LoopDuration =
 		c.Stats.LoopDuration + time.Now().Sub(c.Stats.lastLoopStart)
 
@@ -263,14 +284,8 @@ func (c *Context) Wait() []error {
 
 	c.Stats.JobsExecuted = append(c.Stats.JobsExecuted, c.Pool.JobsExecuted...)
 	c.Stats.NumJobs += len(c.Pool.JobsAll)
-	c.Stats.NumRounds++
 
-	// Then start the pool again, which also has the side effect of
-	// reinitializing anything that needs to be reinitialized.
-	c.Pool.StartRound()
-
-	// This channel is reinitialized, so make sure to pull in the new one.
-	c.Jobs = c.Pool.Jobs
+	c.StartRound()
 
 	if c.Stats.JobsErrored == nil {
 		return nil
@@ -349,6 +364,7 @@ type Stats struct {
 
 // Reset resets statistics.
 func (s *Stats) Reset() {
+	s.JobsErrored = nil
 	s.JobsExecuted = nil
 	s.LoopDuration = time.Duration(0)
 	s.NumJobs = 0

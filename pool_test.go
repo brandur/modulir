@@ -10,7 +10,7 @@ import (
 func TestEmptyPool(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 10)
 
-	p.StartRound()
+	p.StartRound(0)
 	p.Wait()
 
 	assert.Equal(t, 0, len(p.JobsAll))
@@ -22,7 +22,7 @@ func TestEmptyPool(t *testing.T) {
 func TestWithWork(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 10)
 
-	p.StartRound()
+	p.StartRound(0)
 	j0 := NewJob("job 0", func() (bool, error) { return true, nil })
 	p.Jobs <- j0
 	j1 := NewJob("job 1", func() (bool, error) { return true, nil })
@@ -55,7 +55,7 @@ func TestWithLargeNonWork(t *testing.T) {
 	numRounds := 50
 
 	for i := 0; i < numRounds; i++ {
-		p.StartRound()
+		p.StartRound(0)
 		for j := 0; j < numJobs; j++ {
 			p.Jobs <- NewJob("job", func() (bool, error) { return false, nil })
 		}
@@ -72,7 +72,7 @@ func TestWithLargeNonWork(t *testing.T) {
 func TestWithError(t *testing.T) {
 	p := NewPool(&Logger{Level: LevelDebug}, 10)
 
-	p.StartRound()
+	p.StartRound(0)
 	j0 := NewJob("job 0", func() (bool, error) { return true, nil })
 	p.Jobs <- j0
 	j1 := NewJob("job 1", func() (bool, error) { return true, nil })

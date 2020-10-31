@@ -85,6 +85,7 @@ type Pool struct {
 	jobsExecutedMu sync.Mutex
 	jobsFeederDone chan struct{}
 	log            LoggerInterface
+	roundNum       int
 	roundStarted   bool
 	wg             sync.WaitGroup
 	workerInfos    []workerInfo
@@ -186,12 +187,13 @@ func (p *Pool) LogSlowestSlice(jobs []*Job) {
 
 // StartRound begins an execution round. Internal statistics and other tracking
 // are all reset.
-func (p *Pool) StartRound() {
+func (p *Pool) StartRound(roundNum int) {
 	if p.roundStarted {
 		panic("StartRound already called (call Wait before calling it again)")
 	}
 
-	p.log.Debugf("pool: Starting round at concurrency %v", p.concurrency)
+	p.roundNum = roundNum
+	p.log.Debugf("pool: Starting round %v at concurrency %v", p.roundNum, p.concurrency)
 
 	p.Jobs = make(chan *Job, 500)
 	p.JobsAll = nil
@@ -242,6 +244,8 @@ func (p *Pool) Wait() bool {
 	if !p.roundStarted {
 		panic("Can't wait on a job pool that's not primed (call StartRound first)")
 	}
+
+	p.log.Debugf("pool: Starting round %v", p.roundNum)
 
 	p.roundStarted = false
 
