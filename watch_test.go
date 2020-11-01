@@ -36,6 +36,38 @@ func TestBuildWithinSameFileQuiesce(t *testing.T) {
 	))
 }
 
+func TestCompareKeys(t *testing.T) {
+	assert.True(t, compareKeys(
+		map[string]struct{}{"a": {}, "b": {}},
+		map[string]struct{}{"b": {}, "a": {}},
+	))
+
+	assert.True(t, compareKeys(
+		map[string]struct{}{"a": {}, "b": {}, "c": {}},
+		map[string]struct{}{"c": {}, "b": {}, "a": {}},
+	))
+
+	assert.False(t, compareKeys(
+		map[string]struct{}{"a": {}},
+		map[string]struct{}{"b": {}},
+	))
+
+	assert.False(t, compareKeys(
+		map[string]struct{}{"a": {}, "b": {}},
+		map[string]struct{}{"c": {}, "a": {}},
+	))
+
+	assert.False(t, compareKeys(
+		map[string]struct{}{"a": {}},
+		nil,
+	))
+
+	assert.False(t, compareKeys(
+		nil,
+		map[string]struct{}{"a": {}},
+	))
+}
+
 func TestShouldRebuild(t *testing.T) {
 	// Most things signal a rebuild
 	assert.Equal(t, true, shouldRebuild("a/path", fsnotify.Create))

@@ -2,7 +2,6 @@ package modulir
 
 import (
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 //
 //
 //////////////////////////////////////////////////////////////////////////////
-
 
 // Listens for file system changes from fsnotify and pushes relevant ones back
 // out over the rebuild channel.
@@ -172,12 +170,32 @@ func buildWithinSameFileQuiesce(lastRebuild, now time.Time,
 		return false
 	}
 
-	// Acts as a quick compare so avoid using DeepEqual if possible
-	if len(lastChangedSources) != len(changedSources) {
+	return compareKeys(lastChangedSources, changedSources)
+}
+
+// Quick key comparison function for fun, but could use `reflect.DeepEqual`
+// alternatively. I didn't even benchmark so it's possible there's no
+// difference.
+func compareKeys(m1, m2 map[string]struct{}) bool {
+	if len(m1) != len(m2) {
 		return false
 	}
 
-	return reflect.DeepEqual(lastChangedSources, changedSources)
+	for k := range m1 {
+		_, ok := m2[k]
+		if !ok {
+			return false
+		}
+	}
+
+	for k := range m2 {
+		_, ok := m1[k]
+		if !ok {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Decides whether a rebuild should be triggered given some input event
