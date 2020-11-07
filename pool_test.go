@@ -95,3 +95,104 @@ func TestWithError(t *testing.T) {
 	assert.Equal(t, true, j2.Executed)
 	assert.Equal(t, fmt.Errorf("error"), j2.Err)
 }
+
+func TestWorkJob(t *testing.T) {
+	p := NewPool(&Logger{Level: LevelDebug}, 1)
+
+	executed := false
+	j := &Job{
+		F: func() (bool, error) {
+			executed = true
+			return true, nil
+		},
+		Name: "TestJob",
+	}
+
+	p.wg.Add(1)
+	p.workJob(0, j)
+
+	assert.True(t, executed)
+
+	assert.Equal(t, 0, len(p.JobsErrored))
+	assert.Equal(t, 1, len(p.JobsExecuted))
+
+	assert.Equal(t, true, j.Executed)
+	assert.Equal(t, nil, j.Err)
+}
+
+func TestWorkJob_Error(t *testing.T) {
+	p := NewPool(&Logger{Level: LevelDebug}, 1)
+
+	executed := false
+	j := &Job{
+		F: func() (bool, error) {
+			executed = true
+			return true, fmt.Errorf("error")
+		},
+		Name: "TestJob",
+	}
+
+	p.wg.Add(1)
+	p.workJob(0, j)
+
+	assert.True(t, executed)
+
+	assert.Equal(t, 1, len(p.JobsErrored))
+	assert.Equal(t, 1, len(p.JobsExecuted))
+	assert.Equal(t, []error{fmt.Errorf("error")}, p.JobErrors())
+
+	assert.Equal(t, true, j.Executed)
+	assert.Equal(t, fmt.Errorf("error"), j.Err)
+}
+
+func TestWorkJob_Panic(t *testing.T) {
+	p := NewPool(&Logger{Level: LevelDebug}, 1)
+
+	executed := false
+	j := &Job{
+		F: func() (bool, error) {
+			executed = true
+			panic(fmt.Errorf("error"))
+		},
+		Name: "TestJob",
+	}
+
+	p.wg.Add(1)
+	p.workJob(0, j)
+
+	assert.True(t, executed)
+
+	assert.Equal(t, 1, len(p.JobsErrored))
+	assert.Equal(t, 0, len(p.JobsExecuted))
+
+	err := p.JobErrors()[0]
+	assert.Equal(t, "Job panicked: error", err.Error())
+
+	assert.Equal(t, false, j.Executed)
+	assert.Equal(t, "Job panicked: error", j.Err.Error())
+}
+
+func TestWorkJob_PanicString(t *testing.T) {
+	p := NewPool(&Logger{Level: LevelDebug}, 1)
+
+	executed := false
+	j := &Job{
+		F: func() (bool, error) {
+			executed = true
+			panic("error")
+		},
+		Name: "TestJob",
+	}
+
+	p.wg.Add(1)
+	p.workJob(0, j)
+
+	assert.True(t, executed)
+
+	assert.Equal(t, 1, len(p.JobsErrored))
+	assert.Equal(t, 0, len(p.JobsExecuted))
+	assert.Equal(t, []error{fmt.Errorf("Job panicked: error")}, p.JobErrors())
+
+	assert.Equal(t, false, j.Executed)
+	assert.Equal(t, fmt.Errorf("Job panicked: error"), j.Err)
+}
