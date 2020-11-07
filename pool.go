@@ -1,6 +1,7 @@
 package modulir
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -466,6 +467,10 @@ func (p *Pool) workJob(workerNum int, job *Job) {
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
 				jobErr = errors.Wrap(err, "Job panicked")
+			} else {
+				// Panics are often just given a string to panic with, so make
+				// sure to handle that as well
+				jobErr = fmt.Errorf("Job panicked: %v", r)
 			}
 			panicked = true
 		}
