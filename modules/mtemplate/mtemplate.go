@@ -35,7 +35,7 @@ var FuncMap = template.FuncMap{
 	"RetinaImage":                  RetinaImage,
 	"RetinaImageAlt":               RetinaImageAlt,
 	"RoundToString":                RoundToString,
-	"To2x":                         To2x,
+	"To2X":                         To2X,
 }
 
 // CollapseParagraphs strips paragraph tags out of rendered HTML. Note does not
@@ -190,9 +190,9 @@ func RoundToString(f float64) string {
 	return fmt.Sprintf("%.1f", f)
 }
 
-// To2x takes a 1x (standad resolution) image path and changes it to a 2x path
+// To2X takes a 1x (standad resolution) image path and changes it to a 2x path
 // by putting `@2x` into its name right before its extension.
-func To2x(imagePath string) string {
+func To2X(imagePath string) string {
 	parts := strings.Split(imagePath, ".")
 
 	if len(parts) < 2 {

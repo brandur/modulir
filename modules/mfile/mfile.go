@@ -7,10 +7,22 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/brandur/modulir"
 	"github.com/pkg/errors"
+	gocache "github.com/patrickmn/go-cache"
 )
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//
+//
+// Public
+//
+//
+//
+//////////////////////////////////////////////////////////////////////////////
 
 // CopyFile is a shortcut for copy a file from a source path to a target path.
 func CopyFile(c *modulir.Context, source, target string) error {
@@ -186,6 +198,36 @@ type ReadDirOptions struct {
 	ShowMeta bool
 }
 
+// ReadDirCached is the same as ReadDirWithOptions, but it caches results for
+// some amount of time to make it faster. The downside of this of course is
+// that we occasionally get a stale cache when a new file is added and don't
+// see it.
+func ReadDirCached(c *modulir.Context, source string,
+	opts *ReadDirOptions) ([]string, error) {
+
+	// Try to use a result from an expiring cache to speed up build loops that
+	// run within close proximity of each other. Listing files is one of the
+	// slower operations throughout the build loop, so this helps speed it up
+	// quite a bit.
+	//
+	// Note that we only use the source as cache key even though technically
+	// options could vary, which could potentially cause trouble. We know in
+	// this project that ReadDir on particular directories always use the same
+	// options, so we let that slide even if it's somewhat dangerous.
+	if paths, ok := readDirCache.Get(source); ok {
+		c.Log.Debugf("Using cached results of ReadDir: %s", source)
+		return paths.([]string), nil
+	}
+
+	files, err := ReadDirWithOptions(c, source, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	readDirCache.Set(source, files, gocache.DefaultExpiration)
+	return files, nil
+}
+
 // ReadDirWithOptions reads files in a directory and returns a list of file
 // paths.
 //
@@ -225,3 +267,26 @@ func ReadDirWithOptions(c *modulir.Context, source string,
 	c.Log.Debugf("mfile: Read dir: %s", source)
 	return files, nil
 }
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//
+//
+// Private
+//
+//
+//
+//////////////////////////////////////////////////////////////////////////////
+
+// An expiring cache that stores the results of a `mfile.ReadDir` (i.e. list
+// directory) for some period of time. It turns out these calls are relatively
+// slow and this helps speed up the build loop.
+//
+// The downside is that new files are not discovered right away, and often
+// necessitate a server restart. A future improvement might be to have Modulir
+// provide a simplified events channel that we can listen to in order to expire
+// entries from the cache.
+//
+// Arguments are (defaultExpiration, cleanupInterval).
+var readDirCache = gocache.New(5*time.Minute, 10*time.Minute)
+

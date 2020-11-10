@@ -306,7 +306,7 @@ func transformImagesToRetina(source string, options *RenderOptions) (string, err
 		}
 		return fmt.Sprintf(`<img src="%s" srcset="%s 2x, %s 1x"`,
 			matches[1],
-			mtemplate.To2x(matches[1]),
+			mtemplate.To2X(matches[1]),
 			matches[1],
 		)
 	}), nil
