@@ -9,6 +9,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pelletier/go-toml v1.6.0
 	github.com/pkg/errors v0.9.1
+	github.com/russross/blackfriday v1.5.2
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/yosssi/ace v0.0.5
