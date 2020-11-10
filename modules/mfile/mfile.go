@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/brandur/modulir"
-	"github.com/pkg/errors"
 	gocache "github.com/patrickmn/go-cache"
+	"github.com/pkg/errors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -289,4 +289,3 @@ func ReadDirWithOptions(c *modulir.Context, source string,
 //
 // Arguments are (defaultExpiration, cleanupInterval).
 var readDirCache = gocache.New(5*time.Minute, 10*time.Minute)
-
