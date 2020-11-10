@@ -32,6 +32,14 @@ var FuncMap = template.FuncMap{}
 
 // RenderOptions describes a rendering operation to be customized.
 type RenderOptions struct {
+	// AbsoluteURL is the absolute URL of the final site. If set, the Markdown
+	// renderer replaces the sources of any images or links that pointed to
+	// relative URLs with absolute URLs.
+	AbsoluteURL string
+
+	// NoFollow adds `rel="nofollow"` to any external links.
+	NoFollow bool
+
 	// NoFootnoteLinks disables linking to and from footnotes.
 	NoFootnoteLinks bool
 
@@ -76,6 +84,9 @@ var renderStack = []func(string, *RenderOptions) (string, error){
 	transformGoTemplate,
 	transformHeaders,
 
+	// DEPRECATED: Use Go template helpers instead.
+	transformFigures,
+
 	// The actual Blackfriday rendering
 	func(source string, _ *RenderOptions) (string, error) {
 		return string(blackfriday.Run([]byte(source))), nil
@@ -85,7 +96,17 @@ var renderStack = []func(string, *RenderOptions) (string, error){
 	// Post-transformation functions
 	//
 
+	// DEPRECATED: Find a different way to do this.
+	transformCodeWithLanguagePrefix,
+
 	transformFootnotes,
+
+	// Should come before `transformImagesAndLinksToAbsoluteURLs` so that
+	// relative links that are later converted to absolute aren't tagged with
+	// `rel="nofollow"`.
+	transformLinksToNoFollow,
+
+	transformImagesAndLinksToAbsoluteURLs,
 	transformImagesToRetina,
 }
 
@@ -101,6 +122,41 @@ func collapseHTML(html string) string {
 	html = whitespaceRE.ReplaceAllString(html, "><")
 	html = strings.TrimSpace(html)
 	return html
+}
+
+var codeRE = regexp.MustCompile(`<code class="(\w+)">`)
+
+func transformCodeWithLanguagePrefix(source string, options *RenderOptions) (string, error) {
+	return codeRE.ReplaceAllString(source, `<code class="language-$1">`), nil
+}
+
+const figureHTML = `
+<figure>
+  <p><a href="%s"><img src="%s" class="overflowing"></a></p>
+  <figcaption>%s</figcaption>
+</figure>
+`
+
+var figureRE = regexp.MustCompile(`!fig src="(.*)" caption="(.*)"`)
+
+func transformFigures(source string, options *RenderOptions) (string, error) {
+	return figureRE.ReplaceAllStringFunc(source, func(figure string) string {
+		matches := figureRE.FindStringSubmatch(figure)
+		src := matches[1]
+
+		link := src
+		extension := filepath.Ext(link)
+		if extension != "" && extension != ".svg" {
+			link = link[0:len(src)-len(extension)] + "@2x" + extension
+		}
+
+		// This is a really ugly hack in that it relies on the regex above
+		// being greedy about quotes, but meh, I'll make it better when there's
+		// a good reason to.
+		caption := strings.Replace(matches[2], `\"`, `"`, -1)
+
+		return fmt.Sprintf(figureHTML, link, src, caption)
+	}), nil
 }
 
 // Note that this should come early as we currently rely on a later step to
@@ -309,5 +365,37 @@ func transformImagesToRetina(source string, options *RenderOptions) (string, err
 			mtemplate.To2X(matches[1]),
 			matches[1],
 		)
+	}), nil
+}
+
+var relativeImageRE = regexp.MustCompile(`<img src="/`)
+
+var relativeLinkRE = regexp.MustCompile(`<a href="/`)
+
+func transformImagesAndLinksToAbsoluteURLs(source string, options *RenderOptions) (string, error) {
+	if options == nil || options.AbsoluteURL == "" {
+		return source, nil
+	}
+
+	source = relativeImageRE.ReplaceAllStringFunc(source, func(img string) string {
+		return `<img src="` + options.AbsoluteURL + `/`
+	})
+
+	source = relativeLinkRE.ReplaceAllStringFunc(source, func(img string) string {
+		return `<a href="` + options.AbsoluteURL + `/`
+	})
+
+	return source, nil
+}
+
+var absoluteLinkRE = regexp.MustCompile(`<a href="http[^"]+"`)
+
+func transformLinksToNoFollow(source string, options *RenderOptions) (string, error) {
+	if options == nil || !options.NoFollow {
+		return source, nil
+	}
+
+	return absoluteLinkRE.ReplaceAllStringFunc(source, func(link string) string {
+		return fmt.Sprintf(`%s rel="nofollow"`, link)
 	}), nil
 }

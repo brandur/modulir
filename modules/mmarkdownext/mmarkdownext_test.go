@@ -17,6 +17,53 @@ func TestRender(t *testing.T) {
 	assert.Equal(t, "<p><strong>strong</strong></p>\n", must(Render("**strong**", nil)))
 }
 
+func TestTransformCodeWithLanguagePrefix(t *testing.T) {
+	assert.Equal(t,
+		`<code class="language-ruby">`,
+		must(transformCodeWithLanguagePrefix(`<code class="ruby">`, nil)),
+	)
+}
+
+func TestTransformFigures(t *testing.T) {
+	assert.Equal(t, `
+<figure>
+  <p><a href="fig-src"><img src="fig-src" class="overflowing"></a></p>
+  <figcaption>fig-caption</figcaption>
+</figure>
+`,
+		must(transformFigures(`!fig src="fig-src" caption="fig-caption"`, nil)),
+	)
+
+	// .png links to "@2x" version of the source
+	assert.Equal(t, `
+<figure>
+  <p><a href="fig-src@2x.png"><img src="fig-src.png" class="overflowing"></a></p>
+  <figcaption>fig-caption</figcaption>
+</figure>
+`,
+		must(transformFigures(`!fig src="fig-src.png" caption="fig-caption"`, nil)),
+	)
+
+	// .svg doesn't link to "@2x"
+	assert.Equal(t, `
+<figure>
+  <p><a href="fig-src.svg"><img src="fig-src.svg" class="overflowing"></a></p>
+  <figcaption>fig-caption</figcaption>
+</figure>
+`,
+		must(transformFigures(`!fig src="fig-src.svg" caption="fig-caption"`, nil)),
+	)
+
+	assert.Equal(t, `
+<figure>
+  <p><a href="fig-src"><img src="fig-src" class="overflowing"></a></p>
+  <figcaption>Caption with some "" quote.</figcaption>
+</figure>
+`,
+		must(transformFigures(`!fig src="fig-src" caption="Caption with some \"\" quote."`, nil)),
+	)
+}
+
 func TestTransformFootnotes(t *testing.T) {
 	assert.Equal(t, `
 <p>This is a reference <sup id="footnote-1-source"><a href="#footnote-1">1</a></sup> to a footnote <sup id="footnote-2-source"><a href="#footnote-2">2</a></sup>.</p>
@@ -167,6 +214,74 @@ func TestTransformImagesToRetina(t *testing.T) {
 		must(transformImagesToRetina(
 			`<img src="/assets/hello.jpg">`,
 			&RenderOptions{NoRetina: true},
+		)),
+	)
+}
+
+func TestTransformImagesToAbsoluteURLs(t *testing.T) {
+	// An image
+	assert.Equal(t,
+		`<img src="https://brandur.org/assets/hello.jpg">`,
+		must(transformImagesAndLinksToAbsoluteURLs(
+			`<img src="/assets/hello.jpg">`,
+			&RenderOptions{AbsoluteURL: "https://brandur.org"},
+		)),
+	)
+
+	// A link
+	assert.Equal(t,
+		`<a href="https://brandur.org/relative">Relative</a>`,
+		must(transformImagesAndLinksToAbsoluteURLs(
+			`<a href="/relative">Relative</a>`,
+			&RenderOptions{AbsoluteURL: "https://brandur.org"},
+		)),
+	)
+
+	// URLs that are already absolute are left alone.
+	assert.Equal(t,
+		`<img src="https://example.com/assets/hello.jpg">`,
+		must(transformImagesAndLinksToAbsoluteURLs(
+			`<img src="https://example.com/assets/hello.jpg">`,
+			&RenderOptions{AbsoluteURL: "https://brandur.org"},
+		)),
+	)
+
+	// Should pass through if options are nil.
+	assert.Equal(t,
+		`<img src="/assets/hello.jpg">`,
+		must(transformImagesAndLinksToAbsoluteURLs(
+			`<img src="/assets/hello.jpg">`,
+			nil,
+		)),
+	)
+}
+
+func TestTransformLinksToNoFollow(t *testing.T) {
+	assert.Equal(t,
+		`<a href="https://example.com" rel="nofollow">Example</a>`+
+			`<span class="hello">Hello</span>`,
+		must(transformLinksToNoFollow(
+			`<a href="https://example.com">Example</a>`+
+				`<span class="hello">Hello</span>`,
+			&RenderOptions{NoFollow: true},
+		)),
+	)
+
+	// URLs that are relative should be left alone.
+	assert.Equal(t,
+		`<a href="/relative">Relative link</a>`,
+		must(transformLinksToNoFollow(
+			`<a href="/relative">Relative link</a>`,
+			&RenderOptions{NoFollow: true},
+		)),
+	)
+
+	// Should pass through if options are nil.
+	assert.Equal(t,
+		`<a href="https://example.com">Example</a>`,
+		must(transformLinksToNoFollow(
+			`<a href="https://example.com">Example</a>`,
+			nil,
 		)),
 	)
 }
