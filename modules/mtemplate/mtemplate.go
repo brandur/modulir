@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -34,8 +35,6 @@ var FuncMap = template.FuncMap{
 	"ImgSrcAndAlt":                 ImgSrcAndAlt,
 	"ImgSrcAndAltAndClass":         ImgSrcAndAltAndClass,
 	"QueryEscape":                  QueryEscape,
-	"RetinaImage":                  RetinaImage,
-	"RetinaImageAlt":               RetinaImageAlt,
 	"RoundToString":                RoundToString,
 	"To2X":                         To2X,
 }
@@ -124,9 +123,7 @@ func Figure(figCaption string, imgs ...*HTMLImage) template.HTML {
 `
 
 	for _, img := range imgs {
-		out += fmt.Sprintf(`    %s
-`,
-			img.render())
+		out += "    " + string(img.render()) + "\n"
 	}
 
 	out += fmt.Sprintf(`
@@ -157,20 +154,50 @@ type HTMLImage struct {
 	Class string
 }
 
-func (img *HTMLImage) render() template.HTML {
-	// Giving everything for this type of image a lazy loading attribute seems
-	// pretty safe given these are largely images that get embedded in blog
-	// posts, etc.
-	commonHTML := fmt.Sprintf(`<img src="%s" alt="%s" loading="lazy"`,
-		img.Src, img.Alt)
+// htmlElementRenderer is an internal representation of an HTML element to make
+// building one with a set of properties easier.
+type htmlElementRenderer struct {
+	Name  string
+	Attrs map[string]string
+}
 
-	if img.Class != "" {
-		return template.HTML(
-			fmt.Sprintf(`%s class="%s">`, commonHTML, img.Class),
-		)
+func (r *htmlElementRenderer) render() template.HTML {
+	var pairs []string
+	for name, val := range r.Attrs {
+		pairs = append(pairs, fmt.Sprintf(`%s="%s"`, name, val))
 	}
 
-	return template.HTML(commonHTML + ">")
+	// Sort the outgoing names so that we have something stable to test against
+	sort.Strings(pairs)
+
+	return template.HTML(fmt.Sprintf(
+		`<%s %s>`,
+		r.Name,
+		strings.Join(pairs, " "),
+	))
+}
+
+func (img *HTMLImage) render() template.HTML {
+	element := htmlElementRenderer{
+		Name: "img",
+		Attrs: map[string]string{
+			"alt":     img.Alt,
+			"loading": "lazy",
+			"src":     img.Src,
+		},
+	}
+
+	ext := filepath.Ext(img.Src)
+	if ext != ".svg" {
+		retinaSource := strings.TrimSuffix(img.Src, ext) + "@2x" + ext
+		element.Attrs["srcset"] = fmt.Sprintf("%s 2x, %s 1x", retinaSource, img.Src)
+	}
+
+	if img.Class != "" {
+		element.Attrs["class"] = img.Class
+	}
+
+	return element.render()
 }
 
 // HTMLRender renders a series of mtemplate HTML elements.
@@ -206,26 +233,6 @@ func FormatTime(t *time.Time) string {
 // QueryEscape escapes a URL.
 func QueryEscape(s string) string {
 	return url.QueryEscape(s)
-}
-
-// RetinaImage produces an <img> tag containing a `srcset` with both the `@2x`
-// and non-`@2x` version of the image.
-func RetinaImage(source string) template.HTML {
-	ext := filepath.Ext(source)
-	retinaSource := strings.TrimSuffix(source, ext) + "@2x" + ext
-	s := fmt.Sprintf(`<img src="%s" srcset="%s 2x, %s 1x" loading="lazy">`,
-		source, retinaSource, source)
-	return template.HTML(s)
-}
-
-// RetinaImageAlt produces an <img> tag containing a `srcset` with both the
-// `@2x` and non-`@2x` version of the image. It also includes an alt.
-func RetinaImageAlt(source, alt string) template.HTML {
-	ext := filepath.Ext(source)
-	retinaSource := strings.TrimSuffix(source, ext) + "@2x" + ext
-	s := fmt.Sprintf(`<img src="%s" srcset="%s 2x, %s 1x" alt="%s" loading="lazy">`,
-		source, retinaSource, source, strings.ReplaceAll(alt, `"`, `\"`))
-	return template.HTML(s)
 }
 
 // RoundToString rounds a float to a presentation-friendly string.

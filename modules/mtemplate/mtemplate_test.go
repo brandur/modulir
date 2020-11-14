@@ -41,10 +41,10 @@ func TestCombineFuncMaps(t *testing.T) {
 		"CollapseParagraphs": CollapseParagraphs,
 	}
 	var fm2 = template.FuncMap{
-		"RetinaImage": RetinaImage,
+		"QueryEscape": QueryEscape,
 	}
 	var fm3 = template.FuncMap{
-		"RetinaImageAlt": RetinaImageAlt,
+		"To2X": To2X,
 	}
 
 	combined := CombineFuncMaps(fm1, fm2, fm3)
@@ -54,11 +54,11 @@ func TestCombineFuncMaps(t *testing.T) {
 		assert.True(t, ok)
 	}
 	{
-		_, ok := combined["RetinaImage"]
+		_, ok := combined["QueryEscape"]
 		assert.True(t, ok)
 	}
 	{
-		_, ok := combined["RetinaImageAlt"]
+		_, ok := combined["To2X"]
 		assert.True(t, ok)
 	}
 }
@@ -122,7 +122,7 @@ func TestFigure(t *testing.T) {
 			t,
 			strings.TrimSpace(`
 <figure>
-    <img src="src" alt="alt" loading="lazy">
+    <img alt="alt" loading="lazy" src="src" srcset="src@2x 2x, src 1x">
 
     <figcaption>caption</figcaption>
 </figure>
@@ -136,9 +136,9 @@ func TestFigure(t *testing.T) {
 			t,
 			strings.TrimSpace(`
 <figure>
-    <img src="src0" alt="alt0" loading="lazy">
-    <img src="src1" alt="alt1" loading="lazy">
-    <img src="src2" alt="alt2" loading="lazy">
+    <img alt="alt0" loading="lazy" src="src0" srcset="src0@2x 2x, src0 1x">
+    <img alt="alt1" loading="lazy" src="src1" srcset="src1@2x 2x, src1 1x">
+    <img alt="alt2" loading="lazy" src="src2" srcset="src2@2x 2x, src2 1x">
 
     <figcaption>caption</figcaption>
 </figure>
@@ -162,7 +162,16 @@ func TestHTMLImageRender(t *testing.T) {
 		img := HTMLImage{Src: "src", Alt: "alt"}
 		assert.Equal(
 			t,
-			`<img src="src" alt="alt" loading="lazy">`,
+			`<img alt="alt" loading="lazy" src="src" srcset="src@2x 2x, src 1x">`,
+			string(img.render()),
+		)
+	})
+
+	t.Run("NoSrcsetForSVG", func(t *testing.T) {
+		img := HTMLImage{Src: "src.svg", Alt: "alt"}
+		assert.Equal(
+			t,
+			`<img alt="alt" loading="lazy" src="src.svg">`,
 			string(img.render()),
 		)
 	})
@@ -171,7 +180,7 @@ func TestHTMLImageRender(t *testing.T) {
 		img := HTMLImage{Src: "src", Alt: "alt", Class: "class"}
 		assert.Equal(
 			t,
-			`<img src="src" alt="alt" loading="lazy" class="class">`,
+			`<img alt="alt" class="class" loading="lazy" src="src" srcset="src@2x 2x, src 1x">`,
 			string(img.render()),
 		)
 	})
@@ -182,7 +191,7 @@ func TestHTMLRender(t *testing.T) {
 		assert.Equal(
 			t,
 			strings.TrimSpace(`
-<img src="src" alt="alt" loading="lazy">
+<img alt="alt" loading="lazy" src="src" srcset="src@2x 2x, src 1x">
 			`),
 			string(HTMLRender(
 				&HTMLImage{Src: "src", Alt: "alt"},
@@ -194,9 +203,9 @@ func TestHTMLRender(t *testing.T) {
 		assert.Equal(
 			t,
 			strings.TrimSpace(`
-<img src="src0" alt="alt0" loading="lazy">
-<img src="src1" alt="alt1" loading="lazy">
-<img src="src2" alt="alt2" loading="lazy">
+<img alt="alt0" loading="lazy" src="src0" srcset="src0@2x 2x, src0 1x">
+<img alt="alt1" loading="lazy" src="src1" srcset="src1@2x 2x, src1 1x">
+<img alt="alt2" loading="lazy" src="src2" srcset="src2@2x 2x, src2 1x">
 			`),
 			string(HTMLRender(
 				&HTMLImage{Src: "src0", Alt: "alt0"},
@@ -225,20 +234,6 @@ func TestImgSrcAndAltAndClass(t *testing.T) {
 
 func TestQueryEscape(t *testing.T) {
 	assert.Equal(t, "a%2Bb", QueryEscape("a+b"))
-}
-
-func TestRetinaImage(t *testing.T) {
-	assert.Equal(t,
-		`<img src="/photographs/other/001.jpg" srcset="/photographs/other/001@2x.jpg 2x, /photographs/other/001.jpg 1x" loading="lazy">`,
-		string(RetinaImage("/photographs/other/001.jpg")),
-	)
-}
-
-func TestRetinaImageAlt(t *testing.T) {
-	assert.Equal(t,
-		`<img src="/photographs/other/001.jpg" srcset="/photographs/other/001@2x.jpg 2x, /photographs/other/001.jpg 1x" alt="alt text" loading="lazy">`,
-		string(RetinaImageAlt("/photographs/other/001.jpg", "alt text")),
-	)
 }
 
 func TestRoundToString(t *testing.T) {
