@@ -29,8 +29,10 @@ var FuncMap = template.FuncMap{
 	"DistanceOfTimeInWordsFromNow": DistanceOfTimeInWordsFromNow,
 	"Figure":                       Figure,
 	"FormatTime":                   FormatTime,
+	"HTMLRender":                   HTMLRender,
 	"HTMLSafePassThrough":          HTMLSafePassThrough,
-	"NewImgSrcAndAlt":              NewImgSrcAndAlt,
+	"ImgSrcAndAlt":                 ImgSrcAndAlt,
+	"ImgSrcAndAltAndClass":         ImgSrcAndAltAndClass,
 	"QueryEscape":                  QueryEscape,
 	"RetinaImage":                  RetinaImage,
 	"RetinaImageAlt":               RetinaImageAlt,
@@ -116,15 +118,15 @@ func DistanceOfTimeInWordsFromNow(to time.Time) string {
 
 // Figure wraps a number of images into a figure and assigns them a caption as
 // well as alt text.
-func Figure(figCaption string, imgs ...*ImgSrcAndAlt) template.HTML {
+func Figure(figCaption string, imgs ...*HTMLImage) template.HTML {
 	out := `
 <figure>
 `
 
 	for _, img := range imgs {
-		out += fmt.Sprintf(`    <img src="%s" alt="%s">
+		out += fmt.Sprintf(`    %s
 `,
-			img.Src, img.Alt)
+			img.render())
 	}
 
 	out += fmt.Sprintf(`
@@ -142,16 +144,57 @@ func HTMLSafePassThrough(s string) template.HTML {
 	return template.HTML(strings.TrimSpace(s))
 }
 
-// ImgSrcAndAlt is a simple tuple representing an image's source and some alt
-// text for it.
-type ImgSrcAndAlt struct {
-	Src string
-	Alt string
+// HTMLElement represents an HTML element that can be rendered.
+type HTMLElement interface {
+	render() template.HTML
 }
 
-// NewImgSrcAndAlt is a shortcut for creating ImgSrcAndAlt.
-func NewImgSrcAndAlt(imgSrc, imgAlt string) *ImgSrcAndAlt {
-	return &ImgSrcAndAlt{imgSrc, imgAlt}
+// HTMLImage is a simple struct representing an HTML image to be rendered and
+// some of the attributes it might have.
+type HTMLImage struct {
+	Src   string
+	Alt   string
+	Class string
+}
+
+func (img *HTMLImage) render() template.HTML {
+	// Giving everything for this type of image a lazy loading attribute seems
+	// pretty safe given these are largely images that get embedded in blog
+	// posts, etc.
+	commonHTML := fmt.Sprintf(`<img src="%s" alt="%s" loading="lazy"`,
+		img.Src, img.Alt)
+
+	if img.Class != "" {
+		return template.HTML(
+			fmt.Sprintf(`%s class="%s">`, commonHTML, img.Class),
+		)
+	}
+
+	return template.HTML(commonHTML + ">")
+}
+
+// HTMLRender renders a series of mtemplate HTML elements.
+func HTMLRender(elements ...HTMLElement) template.HTML {
+	rendered := make([]string, len(elements))
+
+	for i, element := range elements {
+		rendered[i] = string(element.render())
+	}
+
+	return template.HTML(
+		strings.Join(rendered, "\n"),
+	)
+}
+
+// ImgSrcAndAlt is a shortcut for creating ImgSrcAndAlt.
+func ImgSrcAndAlt(imgSrc, imgAlt string) *HTMLImage {
+	return &HTMLImage{imgSrc, imgAlt, ""}
+}
+
+// ImgSrcAndAltAndClass is a shortcut for creating ImgSrcAndAlt with a CSS
+// class.
+func ImgSrcAndAltAndClass(imgSrc, imgAlt, class string) *HTMLImage {
+	return &HTMLImage{imgSrc, imgAlt, class}
 }
 
 // FormatTime formats time according to a relatively straightforward time

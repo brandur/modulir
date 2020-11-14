@@ -122,12 +122,12 @@ func TestFigure(t *testing.T) {
 			t,
 			strings.TrimSpace(`
 <figure>
-    <img src="src" alt="alt">
+    <img src="src" alt="alt" loading="lazy">
 
     <figcaption>caption</figcaption>
 </figure>
 			`),
-			string(Figure("caption", &ImgSrcAndAlt{Src: "src", Alt: "alt"})),
+			string(Figure("caption", &HTMLImage{Src: "src", Alt: "alt"})),
 		)
 	})
 
@@ -136,18 +136,18 @@ func TestFigure(t *testing.T) {
 			t,
 			strings.TrimSpace(`
 <figure>
-    <img src="src0" alt="alt0">
-    <img src="src1" alt="alt1">
-    <img src="src2" alt="alt2">
+    <img src="src0" alt="alt0" loading="lazy">
+    <img src="src1" alt="alt1" loading="lazy">
+    <img src="src2" alt="alt2" loading="lazy">
 
     <figcaption>caption</figcaption>
 </figure>
 			`),
 			string(Figure(
 				"caption",
-				&ImgSrcAndAlt{Src: "src0", Alt: "alt0"},
-				&ImgSrcAndAlt{Src: "src1", Alt: "alt1"},
-				&ImgSrcAndAlt{Src: "src2", Alt: "alt2"},
+				&HTMLImage{Src: "src0", Alt: "alt0"},
+				&HTMLImage{Src: "src1", Alt: "alt1"},
+				&HTMLImage{Src: "src2", Alt: "alt2"},
 			)),
 		)
 	})
@@ -157,12 +157,70 @@ func TestFormatTime(t *testing.T) {
 	assert.Equal(t, "July 3, 2016", FormatTime(&testTime))
 }
 
+func TestHTMLImageRender(t *testing.T) {
+	t.Run("Basic", func(t *testing.T) {
+		img := HTMLImage{Src: "src", Alt: "alt"}
+		assert.Equal(
+			t,
+			`<img src="src" alt="alt" loading="lazy">`,
+			string(img.render()),
+		)
+	})
+
+	t.Run("WithClass", func(t *testing.T) {
+		img := HTMLImage{Src: "src", Alt: "alt", Class: "class"}
+		assert.Equal(
+			t,
+			`<img src="src" alt="alt" loading="lazy" class="class">`,
+			string(img.render()),
+		)
+	})
+}
+
+func TestHTMLRender(t *testing.T) {
+	t.Run("SingleElement", func(t *testing.T) {
+		assert.Equal(
+			t,
+			strings.TrimSpace(`
+<img src="src" alt="alt" loading="lazy">
+			`),
+			string(HTMLRender(
+				&HTMLImage{Src: "src", Alt: "alt"},
+			)),
+		)
+	})
+
+	t.Run("MultipleElements", func(t *testing.T) {
+		assert.Equal(
+			t,
+			strings.TrimSpace(`
+<img src="src0" alt="alt0" loading="lazy">
+<img src="src1" alt="alt1" loading="lazy">
+<img src="src2" alt="alt2" loading="lazy">
+			`),
+			string(HTMLRender(
+				&HTMLImage{Src: "src0", Alt: "alt0"},
+				&HTMLImage{Src: "src1", Alt: "alt1"},
+				&HTMLImage{Src: "src2", Alt: "alt2"},
+			)),
+		)
+	})
+}
+
 func TestHTMLSafePassThrough(t *testing.T) {
 	assert.Equal(t, `{{print "x"}}`, string(HTMLSafePassThrough(`{{print "x"}}`)))
 }
 
-func TestNewImgSrcAndAlt(t *testing.T) {
-	assert.Equal(t, ImgSrcAndAlt{Src: "src", Alt: "alt"}, *NewImgSrcAndAlt("src", "alt"))
+func TestImgSrcAndAlt(t *testing.T) {
+	assert.Equal(t, HTMLImage{Src: "src", Alt: "alt"}, *ImgSrcAndAlt("src", "alt"))
+}
+
+func TestImgSrcAndAltAndClass(t *testing.T) {
+	assert.Equal(
+		t,
+		HTMLImage{Src: "src", Alt: "alt", Class: "class"},
+		*ImgSrcAndAltAndClass("src", "alt", "class"),
+	)
 }
 
 func TestQueryEscape(t *testing.T) {
