@@ -201,6 +201,12 @@ func TestTransformImagesToRetina(t *testing.T) {
 		must(transformImagesToRetina(`<img src="/assets/hello.svg">`, nil)),
 	)
 
+	// Don't change images that already have a srcset.
+	assert.Equal(t,
+		`<img src="/assets/hello.jpg" srcset="pre-existing">`,
+		must(transformImagesToRetina(`<img src="/assets/hello.jpg" srcset="pre-existing">`, nil)),
+	)
+
 	// Make sure transformation works with other attributes in the <img> tag (I
 	// previously introduced a bug relating to this).
 	assert.Equal(t,
