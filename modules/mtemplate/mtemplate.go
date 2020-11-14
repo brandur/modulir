@@ -38,9 +38,9 @@ var FuncMap = template.FuncMap{
 	"To2X":                         To2X,
 }
 
-// CollapseParagraphs strips paragraph tags out of rendered HTML. Note does not
-// handle HTML with any attributes, so is targeted mainly for use with HTML
-// generated from Markdown.
+// CollapseParagraphs strips paragraph tags out of rendered HTML. Note that it
+// does not handle HTML with any attributes, so is targeted mainly for use with
+// HTML generated from Markdown.
 func CollapseParagraphs(s string) string {
 	sCollapsed := s
 	sCollapsed = strings.Replace(sCollapsed, "<p>", "", -1)
