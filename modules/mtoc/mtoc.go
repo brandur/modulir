@@ -18,6 +18,14 @@ type header struct {
 // RenderFromHTML extracts a structure from the given HTML content and renders
 // a corresponding table of contents as an HTML string.
 func RenderFromHTML(content string) (string, error) {
+	return RenderFromHTMLWithMaxLevel(content, -1)
+}
+
+// RenderFromHTMLWithMaxLevel extracts a structure from the given HTML content
+// and renders a corresponding table of contents as an HTML string, but only
+// considers headers of maxLevel or lower. For example, if maxLevel is 2, only
+// h1s and h2s will be included.
+func RenderFromHTMLWithMaxLevel(content string, maxLevel int) (string, error) {
 	var headers []*header
 
 	matches := headerRegexp.FindAllStringSubmatch(content, -1)
@@ -25,6 +33,10 @@ func RenderFromHTML(content string) (string, error) {
 		level, err := strconv.Atoi(match[1])
 		if err != nil {
 			return "", errors.Wrap(err, "Error extracting header level")
+		}
+
+		if maxLevel != -1 && level > maxLevel {
+			continue
 		}
 
 		headers = append(headers, &header{level, "#" + match[2], match[4]})
