@@ -56,7 +56,7 @@ func RenderFromHTMLWithMaxLevel(content string, maxLevel int) (string, error) {
 // Private
 //
 
-var headerRegexp = regexp.MustCompile(`<h([0-9]) id="(.*?)">(<a.*?>)?(.*?)(</a>)?</h[0-9]>`)
+var headerRegexp = regexp.MustCompile(`<h([0-9]).* id="([^"]*)".*?>(<a.*?>)?(.*?)(</a>)?</h[0-9]>`)
 
 func buildTree(headers []*header) *html.Node {
 	if len(headers) < 1 {

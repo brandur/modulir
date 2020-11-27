@@ -199,6 +199,19 @@ func TestRenderFromHTML_Empty(t *testing.T) {
 	assert.Equal(t, "", rendered)
 }
 
+func TestRenderFromHTML_OtherAttrs(t *testing.T) {
+	content := `
+		<h2 style="font-weight: bold;" id="h-a" class="link">Heading A</h2>
+
+		Content.
+	`
+	expected := `<ol><li><a href="#h-a">Heading A</a></li></ol>`
+
+	rendered, err := RenderFromHTML(content)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, rendered)
+}
+
 func TestRenderFromHTMLWithMaxLevel(t *testing.T) {
 	content := `
 		Intro.
