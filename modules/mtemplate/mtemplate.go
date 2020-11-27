@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	texttemplate "text/template"
 	"time"
 )
 
@@ -66,6 +67,17 @@ func CombineFuncMaps(funcMaps ...template.FuncMap) template.FuncMap {
 	}
 
 	return combined
+}
+
+// HTMLFuncMapToText transforms an HTML func map to a text func map.
+func HTMLFuncMapToText(funcMap template.FuncMap) texttemplate.FuncMap {
+	textFuncMap := make(texttemplate.FuncMap)
+
+	for k, v := range funcMap {
+		textFuncMap[k] = v
+	}
+
+	return textFuncMap
 }
 
 const (

@@ -77,6 +77,19 @@ func TestCombineFuncMaps_Duplicate(t *testing.T) {
 		})
 }
 
+func TestHTMLFuncMapToText(t *testing.T) {
+	var fm = template.FuncMap{
+		"To2X": To2X,
+	}
+
+	textFM := HTMLFuncMapToText(fm)
+
+	{
+		_, ok := textFM["To2X"]
+		assert.True(t, ok)
+	}
+}
+
 func TestDistanceOfTimeInWords(t *testing.T) {
 	to := time.Now()
 

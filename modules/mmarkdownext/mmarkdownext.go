@@ -6,7 +6,7 @@ package mmarkdownext
 import (
 	"bytes"
 	"fmt"
-	"html/template"
+	"text/template"
 	"path/filepath"
 	"regexp"
 	"strings"
