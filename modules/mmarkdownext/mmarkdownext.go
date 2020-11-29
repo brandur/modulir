@@ -6,10 +6,10 @@ package mmarkdownext
 import (
 	"bytes"
 	"fmt"
-	"text/template"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/brandur/modulir/modules/mtemplate"
 	"github.com/pkg/errors"
