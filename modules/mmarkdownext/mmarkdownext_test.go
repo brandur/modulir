@@ -121,11 +121,13 @@ func TestTransformFootnotes(t *testing.T) {
 
 func TestTransformHeaders(t *testing.T) {
 	assert.Equal(t, `
+<h1 id="top-level" class="link"><a href="#top-level">Top Level</a></h1>
+
 <h2 id="intro" class="link"><a href="#intro">Introduction</a></h2>
 
 Intro here.
 
-<h2 id="section-1" class="link"><a href="#section-1">Body</a></h2>
+<h2 id="section-2" class="link"><a href="#section-2">Body</a></h2>
 
 <h3 id="article" class="link"><a href="#article">Article</a></h3>
 
@@ -139,7 +141,7 @@ More content.
 
 Article two.
 
-<h3 id="section-5" class="link"><a href="#section-5">Subsection</a></h3>
+<h3 id="section-6" class="link"><a href="#section-6">Subsection</a></h3>
 
 More content.
 
@@ -148,6 +150,8 @@ More content.
 Conclusion.
 `,
 		must(transformHeaders(`
+# Top Level (#top-level)
+
 ## Introduction (#intro)
 
 Intro here.

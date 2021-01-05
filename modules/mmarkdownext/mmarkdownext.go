@@ -201,7 +201,7 @@ const headerHTMLNoLink = `
 //
 // For now, only match ## or more so as to remove code comments from
 // matches. We need a better way of doing that though.
-var headerRE = regexp.MustCompile(`(?m:^(#{2,})\s+(.*?)(\s+\(#(.*)\))?$)`)
+var headerRE = regexp.MustCompile(`(?m:^(#+)\s+(.*?)(\s+\(#(.*)\))?$)`)
 
 func transformHeaders(source string, options *RenderOptions) (string, error) {
 	headerNum := 0
