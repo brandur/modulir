@@ -146,7 +146,7 @@ func FetchAndResizeImage(c *modulir.Context,
 
 	for _, size := range photoSizes {
 		err := resizeImage(c, originalPath,
-			sourceNoExt+size.Suffix, size.Width, size.CropSettings, cropGravity)
+			sourceNoExt+size.Suffix+ext, size.Width, size.CropSettings, cropGravity)
 		if err != nil {
 			return true, errors.Wrapf(err, "Error resizing image: %s", targetSlug)
 		}
