@@ -130,7 +130,7 @@ func FetchAndResizeImage(c *modulir.Context,
 		}
 	}
 
-	ext := filepath.Ext(u.Path)
+	ext := strings.ToLower(filepath.Ext(u.Path))
 	originalPath := filepath.Join(tempDir, targetSlug+"_original"+ext)
 	if fullTempDir := path.Dir(originalPath); fullTempDir != path.Clean(tempDir) {
 		err := mfile.EnsureDir(c, fullTempDir)
