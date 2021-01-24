@@ -14,7 +14,7 @@ func init() {
 		panic("set MAGICK_BIN env to the location of ImageMagick")
 	}
 
-	MozJPEGBin = os.Getenv("MOZ_JPEG_BIN")
+	MozJPEGBin = os.Getenv("MOZJPEG_BIN")
 	PNGQuantBin = os.Getenv("PNGQUANT_BIN")
 }
 

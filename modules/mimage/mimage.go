@@ -362,7 +362,7 @@ func resizeImage(c *modulir.Context,
 
 	w.Close()
 
-	if MozJPEGBin != "" {
+	if optimizeCmd != nil {
 		if err := optimizeCmd.Wait(); err != nil {
 			return fmt.Errorf("%v (stderr: %v)", err, optimizeErrOut.String())
 		}
