@@ -15,6 +15,13 @@ quite verbose.
 The package is currently highly experimental and its APIs
 subject to change.
 
+## Development
+
+Run tests:
+
+    cp .envrc.sample .envrc # set with bin locations
+    go test ./...
+
 <!--
 # vim: set tw=79:
 -->
