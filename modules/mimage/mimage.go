@@ -333,6 +333,7 @@ func resizeImage(c *modulir.Context,
 	} else if ext == ".png" && PNGQuantBin != "" {
 		optimizeCmd = exec.Command(
 			PNGQuantBin,
+			"--force", // overwrites an existing output file
 			"--output",
 			target,
 			"-",
