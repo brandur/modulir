@@ -61,7 +61,13 @@ jobs:
           sudo dpkg -i mozjpeg_master_amd64.deb
 
       - name: Install PNGQuant
-        run: sudo apt-get install pngquant
+        run: |
+          curl -o pngquant_amd64.deb http://ftp.br.debian.org/debian/pool/main/p/pngquant/pngquant_2.13.1-1_amd64.deb
+          sudo dpkg -i pngquant_amd64.deb
+          ls -lh /usr/bin/pngquant
+          mkdir -p /opt/pngquant/bin/
+          cp /usr/bin/pngquant /opt/pngquant/bin/
+          # sudo apt-get install pngquant
 
       - uses: actions/checkout@v2
 
