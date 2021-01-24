@@ -38,9 +38,14 @@ import (
 var MagickBin string
 
 // MozJPEGBin is the location of the `cjpeg` binary that ships with the mozjpeg
-// project (a JPG optimizer). If configured, images are passed through an
+// project (a JPG optimizer). If configured, JPEGs are passed through an
 // optimization pass after resizing them.
 var MozJPEGBin string
+
+// PNGQuantBin is the location of the `pnqquant` binary (a PNG optimizer). If
+// configured, PNGs are passed through an optimization pass after resizing
+// them.
+var PNGQuantBin string
 
 // PhotoCropSettings are directives on how the image should be cropped
 // depending on its proportions.
@@ -299,10 +304,15 @@ func resizeImage(c *modulir.Context,
 		"85",
 	)
 
+	ext := strings.ToLower(filepath.Ext(source))
+
 	// If we have mozjpeg then output to stdout and let it take in the resized
-	// JPEG via pipe. If not, then just resize to the target file immediately.
-	if MozJPEGBin != "" {
+	// JPEG via pipe. Some for PNG. If not, then just resize to the target file
+	// immediately.
+	if ext == ".jpg" && MozJPEGBin != "" {
 		resizeArgs = append(resizeArgs, "JPEG:-")
+	} else if ext == ".png" && PNGQuantBin != "" {
+		resizeArgs = append(resizeArgs, "PNG:-")
 	} else {
 		resizeArgs = append(resizeArgs, target)
 	}
@@ -312,7 +322,7 @@ func resizeImage(c *modulir.Context,
 
 	var optimizeCmd *exec.Cmd
 	r, w := io.Pipe()
-	if MozJPEGBin != "" {
+	if ext == ".jpg" && MozJPEGBin != "" {
 		optimizeCmd = exec.Command(
 			MozJPEGBin,
 			"-optimize",
@@ -320,6 +330,16 @@ func resizeImage(c *modulir.Context,
 			target,
 			"-progressive",
 		)
+	} else if ext == ".png" && PNGQuantBin != "" {
+		optimizeCmd = exec.Command(
+			PNGQuantBin,
+			"--output",
+			target,
+			"-",
+		)
+	}
+
+	if optimizeCmd != nil {
 		optimizeCmd.Stderr = &optimizeErrOut
 
 		resizeCmd.Stdout = w
@@ -330,7 +350,7 @@ func resizeImage(c *modulir.Context,
 		return errors.Wrapf(err, "Error starting resize command")
 	}
 
-	if MozJPEGBin != "" {
+	if optimizeCmd != nil {
 		if err := optimizeCmd.Start(); err != nil {
 			return errors.Wrapf(err, "Error starting optimize command")
 		}

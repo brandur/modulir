@@ -15,9 +15,10 @@ func init() {
 	}
 
 	MozJPEGBin = os.Getenv("MOZ_JPEG_BIN")
+	PNGQuantBin = os.Getenv("PNGQUANT_BIN")
 }
 
-func TestResizeImage(t *testing.T) {
+func TestResizeImageJPEG(t *testing.T) {
 	d, _ := os.Getwd()
 	t.Logf("pwd = %v\n", d)
 
@@ -30,7 +31,7 @@ func TestResizeImage(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestResizeImage_NoMozJPEG(t *testing.T) {
+func TestResizeImageJPEG_NoMozJPEG(t *testing.T) {
 	if MozJPEGBin == "" {
 		return
 	}
@@ -40,6 +41,19 @@ func TestResizeImage_NoMozJPEG(t *testing.T) {
 	defer os.Remove(tmpfile.Name())
 
 	err = resizeImage(nil, "./samples/square.jpg", tmpfile.Name(),
+		100, nil, PhotoGravityCenter)
+	assert.NoError(t, err)
+}
+
+func TestResizeImagePNG(t *testing.T) {
+	d, _ := os.Getwd()
+	t.Logf("pwd = %v\n", d)
+
+	tmpfile, err := ioutil.TempFile("", "resized_image")
+	assert.NoError(t, err)
+	defer os.Remove(tmpfile.Name())
+
+	err = resizeImage(nil, "./samples/sample.png", tmpfile.Name(),
 		100, nil, PhotoGravityCenter)
 	assert.NoError(t, err)
 }
