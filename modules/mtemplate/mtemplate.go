@@ -138,8 +138,7 @@ func Figure(figCaption string, imgs ...*HTMLImage) template.HTML {
 		out += "    " + string(img.render()) + "\n"
 	}
 
-	out += fmt.Sprintf(`
-    <figcaption>%s</figcaption>
+	out += fmt.Sprintf(`    <figcaption>%s</figcaption>
 </figure>`,
 		figCaption)
 

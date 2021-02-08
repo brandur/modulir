@@ -136,7 +136,6 @@ func TestFigure(t *testing.T) {
 			strings.TrimSpace(`
 <figure>
     <img alt="alt" loading="lazy" src="src" srcset="src@2x 2x, src 1x">
-
     <figcaption>caption</figcaption>
 </figure>
 			`),
@@ -152,7 +151,6 @@ func TestFigure(t *testing.T) {
     <img alt="alt0" loading="lazy" src="src0" srcset="src0@2x 2x, src0 1x">
     <img alt="alt1" loading="lazy" src="src1" srcset="src1@2x 2x, src1 1x">
     <img alt="alt2" loading="lazy" src="src2" srcset="src2@2x 2x, src2 1x">
-
     <figcaption>caption</figcaption>
 </figure>
 			`),
