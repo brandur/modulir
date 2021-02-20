@@ -30,6 +30,8 @@ var FuncMap = template.FuncMap{
 	"DistanceOfTimeInWords":        DistanceOfTimeInWords,
 	"DistanceOfTimeInWordsFromNow": DistanceOfTimeInWordsFromNow,
 	"Figure":                       Figure,
+	"FigureSingle":                 FigureSingle,
+	"FigureSingleWithClass":        FigureSingleWithClass,
 	"FormatTime":                   FormatTime,
 	"HTMLRender":                   HTMLRender,
 	"HTMLSafePassThrough":          HTMLSafePassThrough,
@@ -143,6 +145,19 @@ func Figure(figCaption string, imgs ...*HTMLImage) template.HTML {
 		figCaption)
 
 	return template.HTML(strings.TrimSpace(out))
+}
+
+// FigureSingle is a shortcut for creating a simple figure with a single image
+// and with an alt that matches the caption.
+func FigureSingle(figCaption, src string) template.HTML {
+	return Figure(figCaption, &HTMLImage{Alt: figCaption, Src: src})
+}
+
+// FigureSingleWithClass is a shortcut for creating a simple figure with a
+// single image and with an alt that matches the caption, and with an HTML
+// class..
+func FigureSingleWithClass(figCaption, src, class string) template.HTML {
+	return Figure(figCaption, &HTMLImage{Alt: figCaption, Class: class, Src: src})
 }
 
 // HTMLSafePassThrough passes a string through to the final render. This is
