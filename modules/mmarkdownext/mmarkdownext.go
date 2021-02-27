@@ -48,6 +48,9 @@ type RenderOptions struct {
 
 	// NoRetina disables the Retina.JS rendering attributes.
 	NoRetina bool
+
+	// TemplateData is data injected while rendering Go templates.
+	TemplateData interface{}
 }
 
 // Render a Markdown string to HTML while applying all custom project-specific
@@ -175,7 +178,7 @@ func transformGoTemplate(source string, options *RenderOptions) (string, error) 
 
 	// Run the template to verify the output.
 	var b bytes.Buffer
-	err = tmpl.Execute(&b, nil)
+	err = tmpl.Execute(&b, options.TemplateData)
 	if err != nil {
 		return "", errors.Wrap(err, "error executing template")
 	}
