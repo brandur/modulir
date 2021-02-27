@@ -176,9 +176,14 @@ func transformGoTemplate(source string, options *RenderOptions) (string, error) 
 		return "", errors.Wrap(err, "error parsing template")
 	}
 
+	var templateData interface{}
+	if options != nil {
+		templateData = options.TemplateData
+	}
+
 	// Run the template to verify the output.
 	var b bytes.Buffer
-	err = tmpl.Execute(&b, options.TemplateData)
+	err = tmpl.Execute(&b, templateData)
 	if err != nil {
 		return "", errors.Wrap(err, "error executing template")
 	}
