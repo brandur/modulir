@@ -136,6 +136,12 @@ func FetchAndResizeImage(c *modulir.Context,
 	}
 
 	ext := strings.ToLower(filepath.Ext(u.Path))
+
+	// For now, make .heic into .jpg until the former is more widely supported.
+	if ext == ".heic" {
+		ext = ".jpg"
+	}
+
 	originalPath := filepath.Join(tempDir, targetSlug+"_original"+ext)
 	if fullTempDir := path.Dir(originalPath); fullTempDir != path.Clean(tempDir) {
 		err := mfile.EnsureDir(c, fullTempDir)
