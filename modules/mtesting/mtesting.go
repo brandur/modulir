@@ -18,6 +18,8 @@ func NewContext() *modulir.Context {
 // WriteTempFile writes the given data to a temporary file. It returns the path
 // to the temporary file which should be removed with `defer os.Remove(path)`.
 func WriteTempFile(t *testing.T, data []byte) string {
+	t.Helper()
+
 	tempFile, err := ioutil.TempFile("", "modulir")
 	assert.NoError(t, err)
 

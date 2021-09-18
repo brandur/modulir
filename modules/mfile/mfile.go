@@ -56,7 +56,7 @@ func CopyFileToDir(c *modulir.Context, source, targetDir string) error {
 
 // EnsureDir ensures the existence of a target directory.
 func EnsureDir(c *modulir.Context, target string) error {
-	err := os.MkdirAll(target, 0755)
+	err := os.MkdirAll(target, 0o755)
 	if err != nil {
 		return xerrors.Errorf("error creating directory: %w", err)
 	}
@@ -205,7 +205,6 @@ type ReadDirOptions struct {
 // see it.
 func ReadDirCached(c *modulir.Context, source string,
 	opts *ReadDirOptions) ([]string, error) {
-
 	// Try to use a result from an expiring cache to speed up build loops that
 	// run within close proximity of each other. Listing files is one of the
 	// slower operations throughout the build loop, so this helps speed it up
@@ -235,13 +234,12 @@ func ReadDirCached(c *modulir.Context, source string,
 // Unlike ReadDir, its behavior can be tweaked.
 func ReadDirWithOptions(c *modulir.Context, source string,
 	opts *ReadDirOptions) ([]string, error) {
-
 	infos, err := ioutil.ReadDir(source)
 	if err != nil {
 		return nil, xerrors.Errorf("error reading directory: %w", err)
 	}
 
-	var files []string
+	files := make([]string, 0, len(infos))
 
 	for _, info := range infos {
 		base := filepath.Base(info.Name())

@@ -35,7 +35,7 @@ func RenderFile(c *modulir.Context, source, target string) error {
 
 	outData := Render(c, inData)
 
-	err = ioutil.WriteFile(target, outData, 0644)
+	err = ioutil.WriteFile(target, outData, 0o600)
 	if err != nil {
 		return xerrors.Errorf("error writing file: %w", err)
 	}

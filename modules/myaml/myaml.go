@@ -58,11 +58,12 @@ var errBadFrontmatter = errors.New("error splitting YAML frontmatter")
 func splitFrontmatter(data []byte) ([]byte, []byte, error) {
 	parts := bytes.Split(data, []byte("---\n"))
 
-	if len(parts) > 1 && !bytes.Equal(parts[0], []byte("")) {
+	switch {
+	case len(parts) > 1 && !bytes.Equal(parts[0], []byte("")):
 		return nil, nil, errBadFrontmatter
-	} else if len(parts) == 2 {
+	case len(parts) == 2:
 		return nil, bytes.TrimSpace(parts[1]), nil
-	} else if len(parts) == 3 {
+	case len(parts) == 3:
 		return bytes.TrimSpace(parts[1]), bytes.TrimSpace(parts[2]), nil
 	}
 

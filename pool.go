@@ -1,6 +1,7 @@
 package modulir
 
 import (
+	"errors"
 	"sort"
 	"sync"
 	"time"
@@ -20,6 +21,7 @@ import (
 
 // Job is a wrapper for a piece of work that should be executed by the job
 // pool.
+// nolint:errname
 type Job struct {
 	// Duration is the time it took the job to run. It's set regardless of
 	// whether the job's finished state was executed, not executed, or errored.
@@ -125,18 +127,17 @@ func (p *Pool) LogErrors() {
 }
 
 // LogErrorsSlice logs a limited set of errors from the given slice.
-func (p *Pool) LogErrorsSlice(errors []error) {
-	if errors == nil {
+func (p *Pool) LogErrorsSlice(errs []error) {
+	if errs == nil {
 		return
 	}
 
-	for i, err := range errors {
+	for i, err := range errs {
 		// When dealing with an errored job (in practice, this is going to be
 		// the common case), we can provide a little more detail on what went
 		// wrong.
-		job, ok := err.(*Job)
-
-		if ok {
+		var job *Job
+		if errors.As(err, &job) {
 			p.log.Errorf(
 				p.colorizer.Bold(p.colorizer.Red("Job error:")).String()+
 					" %v (job: '%s', time: %v)",
@@ -279,7 +280,7 @@ func (p *Pool) Wait() bool {
 	close(p.jobsInternal)
 
 	// Occasionally useful for debugging.
-	//p.logWaitTimeoutInfo()
+	// p.logWaitTimeoutInfo()
 
 	return p.JobsErrored == nil
 }

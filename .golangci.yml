@@ -1,7 +1,33 @@
 linters:
-  enable:
-    - forbidigo
-    - gci
+  disable:
+    - cyclop
+    - exhaustivestruct
+    - forcetypeassert
+    - funlen
+    - gochecknoinits
+    - gochecknoglobals
+    - gocognit
+    - godox
+    - golint
+    - gomnd
+    - interfacer
+    - maligned
+    - nlreturn
+    - paralleltest
+    - scopelint
+    - testpackage
+    - wrapcheck
+    - wsl
+  enable-all: true
+#  enable:
+#    - forbidigo
+#    - gci
+#    - misspell
+#  presets:
+#    - bugs
+#    - format
+#    - style
+#    - unused
 
 linters-settings:
   forbidigo:
@@ -11,3 +37,13 @@ linters-settings:
       - '^fmt\.Errorf$'
   gci:
     local-prefixes: github.com/brandur
+
+  gocritic:
+    disabled-checks:
+      - commentFormatting
+      # - ifElseChain
+      # - singleCaseSwitch
+
+  gosec:
+    excludes:
+      - G203

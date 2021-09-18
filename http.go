@@ -3,6 +3,7 @@ package modulir
 //go:generate go run scripts/embed_js/main.go
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"path"
@@ -47,7 +48,7 @@ func startServingTargetDirHTTP(c *Context, buildComplete *sync.Cond) *http.Serve
 
 		// ListenAndServe always returns a non-nil error (but if started
 		// successfully, it'll block for a long time).
-		if err != http.ErrServerClosed {
+		if !errors.Is(err, http.ErrServerClosed) {
 			exitWithError(xerrors.Errorf("error starting HTTP server: %w", err))
 		}
 	}()
@@ -127,7 +128,6 @@ func getWebsocketJSHandler(c *Context) func(w http.ResponseWriter, r *http.Reque
 		err := websocketJSTemplate.Execute(w, map[string]interface{}{
 			"Port": c.Port,
 		})
-
 		if err != nil {
 			c.Log.Errorf("Error executing template/writing websocket.js: %v", err)
 			return
@@ -186,7 +186,6 @@ func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{
 
 func websocketWritePump(c *Context, conn *websocket.Conn,
 	connClosed chan struct{}, buildComplete *sync.Cond) {
-
 	ticker := time.NewTicker(websocketPingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -198,7 +197,7 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 	sendComplete := make(chan struct{}, 1)
 
 	// This is a hack because of course there's no way to select on a
-	// conditional variable. Instead, we have a seperate Goroutine wait on the
+	// conditional variable. Instead, we have a separate Goroutine wait on the
 	// conditional variable and signal the main select below through a channel.
 	buildCompleteChan := make(chan struct{}, 1)
 	go func() {

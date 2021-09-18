@@ -50,7 +50,6 @@ func Load(c *modulir.Context, basePath, innerPath string, opts *ace.Options) (*t
 // target file.
 func Render(c *modulir.Context, basePath, innerPath string, writer io.Writer,
 	opts *ace.Options, locals map[string]interface{}) error {
-
 	template, err := Load(c, basePath, innerPath, opts)
 	if err != nil {
 		return xerrors.Errorf("error loading template: %w", err)
@@ -69,7 +68,6 @@ func Render(c *modulir.Context, basePath, innerPath string, writer io.Writer,
 // target file.
 func RenderFile(c *modulir.Context, basePath, innerPath, target string,
 	opts *ace.Options, locals map[string]interface{}) error {
-
 	template, err := Load(c, basePath, innerPath, opts)
 	if err != nil {
 		return xerrors.Errorf("error loading template: %w", err)

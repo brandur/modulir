@@ -122,7 +122,7 @@ var whitespaceRE = regexp.MustCompile(`>\s+<`)
 // constants, but then to make them fit a little more nicely into the rendered
 // markup.
 func collapseHTML(html string) string {
-	html = strings.Replace(html, "\n", "", -1)
+	html = strings.ReplaceAll(html, "\n", "")
 	html = whitespaceRE.ReplaceAllString(html, "><")
 	html = strings.TrimSpace(html)
 	return html
@@ -157,7 +157,7 @@ func transformFigures(source string, options *RenderOptions) (string, error) {
 		// This is a really ugly hack in that it relies on the regex above
 		// being greedy about quotes, but meh, I'll make it better when there's
 		// a good reason to.
-		caption := strings.Replace(matches[2], `\"`, `"`, -1)
+		caption := strings.ReplaceAll(matches[2], `\"`, `"`)
 
 		return fmt.Sprintf(figureHTML, link, src, caption)
 	}), nil
@@ -230,7 +230,6 @@ func transformHeaders(source string, options *RenderOptions) (string, error) {
 		if id == "" {
 			// Header with no name, assign a prefixed number.
 			newID = fmt.Sprintf("section-%v", headerNum)
-
 		} else {
 			occurrence, ok := headers[id]
 
@@ -238,7 +237,6 @@ func transformHeaders(source string, options *RenderOptions) (string, error) {
 				// Give duplicate IDs a suffix.
 				newID = fmt.Sprintf("%s-%d", id, occurrence)
 				headers[id]++
-
 			} else {
 				// Otherwise this is the first such ID we've seen.
 				newID = id
@@ -254,7 +252,6 @@ func transformHeaders(source string, options *RenderOptions) (string, error) {
 		}
 
 		return collapseHTML(fmt.Sprintf(headerHTML, level, newID, newID, title, level))
-
 	})
 
 	return source, nil
@@ -338,16 +335,16 @@ func transformFootnotes(source string, options *RenderOptions) (string, error) {
 			} else {
 				reference = fmt.Sprintf(footnoteReferenceHTML, number, number, number)
 			}
-			source = strings.Replace(source,
+			source = strings.ReplaceAll(source,
 				fmt.Sprintf(` [%s]`, number),
-				" "+collapseHTML(reference), -1)
+				" "+collapseHTML(reference))
 
 			return collapseHTML(anchor)
 		})
 
 		// and wrap the whole footer section in a layer for styling
 		footer = fmt.Sprintf(footerWrapper, footer)
-		source = source + footer
+		source += footer
 	}
 
 	return source, nil

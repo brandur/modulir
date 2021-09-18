@@ -26,7 +26,6 @@ import (
 // fast consecutive changes the build might not be perfectly up to date.
 func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan error,
 	rebuild chan map[string]struct{}, rebuildDone chan struct{}) {
-
 	var changedSources, lastChangedSources map[string]struct{}
 	var lastRebuild time.Time
 
@@ -161,7 +160,6 @@ const sameFileQuiesceTime = 100 * time.Millisecond
 // See comment over this function's invocation.
 func buildWithinSameFileQuiesce(lastRebuild, now time.Time,
 	changedSources, lastChangedSources map[string]struct{}) bool {
-
 	if lastChangedSources == nil {
 		return false
 	}

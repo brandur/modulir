@@ -37,13 +37,13 @@ func TestCollapseParagraphs(t *testing.T) {
 }
 
 func TestCombineFuncMaps(t *testing.T) {
-	var fm1 = template.FuncMap{
+	fm1 := template.FuncMap{
 		"CollapseParagraphs": CollapseParagraphs,
 	}
-	var fm2 = template.FuncMap{
+	fm2 := template.FuncMap{
 		"QueryEscape": QueryEscape,
 	}
-	var fm3 = template.FuncMap{
+	fm3 := template.FuncMap{
 		"To2X": To2X,
 	}
 
@@ -64,10 +64,10 @@ func TestCombineFuncMaps(t *testing.T) {
 }
 
 func TestCombineFuncMaps_Duplicate(t *testing.T) {
-	var fm1 = template.FuncMap{
+	fm1 := template.FuncMap{
 		"CollapseParagraphs": CollapseParagraphs,
 	}
-	var fm2 = template.FuncMap{
+	fm2 := template.FuncMap{
 		"CollapseParagraphs": CollapseParagraphs,
 	}
 
@@ -78,7 +78,7 @@ func TestCombineFuncMaps_Duplicate(t *testing.T) {
 }
 
 func TestHTMLFuncMapToText(t *testing.T) {
-	var fm = template.FuncMap{
+	fm := template.FuncMap{
 		"To2X": To2X,
 	}
 
@@ -257,8 +257,8 @@ func TestTo2X(t *testing.T) {
 	assert.Equal(t, template.HTML("/path/image@2x.png"), To2X("/path/image.png"))
 	assert.Equal(t, template.HTML("image@2x.jpg"), To2X("image.jpg"))
 	assert.Equal(t, template.HTML("image"), To2X("image"))
-	assert.Equal(t, template.HTML("photos/reddit/rd_xxx_01/11%20-%20t9kxD78@2x.jpg"), To2X("photos/reddit/rd_xxx_01/11%20-%20t9kxD78.jpg"))
-
+	assert.Equal(t, template.HTML("photos/reddit/rd_xxx_01/11%20-%20t9kxD78@2x.jpg"),
+		To2X("photos/reddit/rd_xxx_01/11%20-%20t9kxD78.jpg"))
 }
 
 //////////////////////////////////////////////////////////////////////////////
