@@ -47,6 +47,10 @@ var MozJPEGBin string
 // them.
 var PNGQuantBin string
 
+// TempDir is a path to a temporary directory where fetched images can be
+// stored.
+var TempDir string
+
 // PhotoCropSettings are directives on how the image should be cropped
 // depending on its proportions.
 type PhotoCropSettings struct {
@@ -94,56 +98,24 @@ type PhotoSize struct {
 // FetchAndResizeImage fetches an image from a URL and resizes it according to
 // specifications.
 func FetchAndResizeImage(c *modulir.Context,
-	u *url.URL, targetDir, targetSlug, tempDir string,
+	u *url.URL, targetDir, targetSlug string,
 	cropGravity PhotoGravity, photoSizes []PhotoSize) (bool, error) {
+
+	if TempDir == "" {
+		return false, fmt.Errorf("mimage.TempDir must be configured for image fetching")
+	}
 
 	// source without an extension, e.g. `content/photographs/123`
 	sourceNoExt := filepath.Join(targetDir, targetSlug)
 
-	// A "marker" is an empty file that we commit to a photograph directory
-	// that indicates that we've already done the work to fetch and resize a
-	// photo. It allows us to skip duplicate work even if we don't have the
-	// work's results available locally. This is important for CI where we
-	// store results to an S3 bucket, but don't pull them all back down again
-	// for every build.
-	markerPath := sourceNoExt + ".marker"
-
-	// We use an in-memory cache to store whether markers exist for some period
-	// of time because going to the filesystem to check every one of them is
-	// relatively slow/expensive.
-	if _, ok := photoMarkerCache.Get(markerPath); ok {
-		c.Log.Debugf("Skipping photo fetch + resize because marker cached: %s",
-			markerPath)
+	if _, exists := markerExists(c, sourceNoExt); exists {
 		return false, nil
-	}
-
-	// Otherwise check the filesystem.
-	if mfile.Exists(markerPath) {
-		c.Log.Debugf("Skipping photo fetch + resize because marker exists: %s",
-			markerPath)
-		photoMarkerCache.Set(markerPath, struct{}{}, gocache.DefaultExpiration)
-		return false, nil
-	}
-
-	// Create a target output directory if necessary. This is only used for
-	// "other" photographs (not part of the main series) which may specify a
-	// subdirectory.
-	if fullTargetDir := path.Dir(sourceNoExt); targetDir != path.Clean(targetDir) {
-		err := mfile.EnsureDir(c, fullTargetDir)
-		if err != nil {
-			return true, err
-		}
 	}
 
 	ext := strings.ToLower(filepath.Ext(u.Path))
 
-	// For now, make .heic into .jpg until the former is more widely supported.
-	if ext == ".heic" {
-		ext = ".jpg"
-	}
-
-	originalPath := filepath.Join(tempDir, targetSlug+"_original"+ext)
-	if fullTempDir := path.Dir(originalPath); fullTempDir != path.Clean(tempDir) {
+	originalPath := filepath.Join(TempDir, targetSlug+"_original"+ext)
+	if fullTempDir := path.Dir(originalPath); fullTempDir != path.Clean(TempDir) {
 		err := mfile.EnsureDir(c, fullTempDir)
 		if err != nil {
 			return true, err
@@ -154,6 +126,33 @@ func FetchAndResizeImage(c *modulir.Context,
 	if err != nil {
 		return true, errors.Wrapf(err, "Error fetching image: %s", targetSlug)
 	}
+
+	return ResizeImage(c, originalPath, targetDir, targetSlug, cropGravity, photoSizes)
+}
+
+// FetchAndResizeImage fetches an image from a URL and resizes it according to
+// specifications.
+func ResizeImage(c *modulir.Context,
+	originalPath, targetDir, targetSlug string,
+	cropGravity PhotoGravity, photoSizes []PhotoSize) (bool, error) {
+
+	// source without an extension, e.g. `content/photographs/123`
+	sourceNoExt := filepath.Join(targetDir, targetSlug)
+
+	markerPath, exists := markerExists(c, sourceNoExt)
+	if exists {
+		return false, nil
+	}
+
+	// Create a target output directory if necessary. This is only used for
+	// "other" photographs (not part of the main series) which may specify a
+	// subdirectory.
+	fullTargetDir := path.Dir(sourceNoExt)
+	if err := mfile.EnsureDir(c, fullTargetDir); err != nil {
+		return true, err
+	}
+
+	ext := strings.ToLower(filepath.Ext(originalPath))
 
 	for _, size := range photoSizes {
 		err := resizeImage(c, originalPath,
@@ -227,6 +226,35 @@ func fetchData(c *modulir.Context, u *url.URL, target string) error {
 	return nil
 }
 
+func markerExists(c *modulir.Context, sourceNoExt string) (string, bool) {
+	// A "marker" is an empty file that we commit to a photograph directory
+	// that indicates that we've already done the work to fetch and resize a
+	// photo. It allows us to skip duplicate work even if we don't have the
+	// work's results available locally. This is important for CI where we
+	// store results to an S3 bucket, but don't pull them all back down again
+	// for every build.
+	markerPath := sourceNoExt + ".marker"
+
+	// We use an in-memory cache to store whether markers exist for some period
+	// of time because going to the filesystem to check every one of them is
+	// relatively slow/expensive.
+	if _, ok := photoMarkerCache.Get(markerPath); ok {
+		c.Log.Debugf("Skipping photo fetch + resize because marker cached: %s",
+			markerPath)
+		return markerPath, true
+	}
+
+	// Otherwise check the filesystem.
+	if mfile.Exists(markerPath) {
+		c.Log.Debugf("Skipping photo fetch + resize because marker exists: %s",
+			markerPath)
+		photoMarkerCache.Set(markerPath, struct{}{}, gocache.DefaultExpiration)
+		return markerPath, true
+	}
+
+	return markerPath, false
+}
+
 func resizeImage(c *modulir.Context,
 	source, target string, width int, cropSettings *PhotoCropSettings, cropGravity PhotoGravity) error {
 
@@ -260,9 +288,16 @@ func resizeImage(c *modulir.Context,
 		return errors.Wrapf(err, "Error converting height '%s' to integer", dimensions[1])
 	}
 
-	isSquare := imageWidth == imageHeight
-	isLandscape := imageWidth > imageHeight
-	isPortrait := imageWidth < imageHeight
+	// Consider square if ratio of width to height within 10%
+	ratio := float64(imageWidth) / float64(imageHeight)
+	isSquare := ratio > 0.90 && ratio < 1.10
+
+	var isLandscape bool
+	var isPortrait bool
+	if !isSquare {
+		isLandscape = imageWidth > imageHeight
+		isPortrait = imageWidth < imageHeight
+	}
 
 	var resizeErrOut bytes.Buffer
 	var optimizeErrOut bytes.Buffer
