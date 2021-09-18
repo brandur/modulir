@@ -177,7 +177,7 @@ func build(c *Context, f func(*Context) []error,
 		// shut it back down.
 		c.Pool.Wait()
 
-		buildDuration := time.Now().Sub(c.Stats.Start)
+		buildDuration := time.Since(c.Stats.Start)
 
 		if lastRoundErrors != nil {
 			errors = append(errors, lastRoundErrors...)
