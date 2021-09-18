@@ -257,6 +257,8 @@ func TestTo2X(t *testing.T) {
 	assert.Equal(t, "/path/image@2x.png", To2X("/path/image.png"))
 	assert.Equal(t, "image@2x.jpg", To2X("image.jpg"))
 	assert.Equal(t, "image", To2X("image"))
+	assert.Equal(t, "photos/reddit/rd_xxx_01/11%20-%20t9kxD78@2x.jpg", To2X("photos/reddit/rd_xxx_01/11%20-%20t9kxD78.jpg"))
+
 }
 
 //////////////////////////////////////////////////////////////////////////////

@@ -268,16 +268,16 @@ func RoundToString(f float64) string {
 
 // To2X takes a 1x (standad resolution) image path and changes it to a 2x path
 // by putting `@2x` into its name right before its extension.
-func To2X(imagePath string) string {
+func To2X(imagePath string) template.HTML {
 	parts := strings.Split(imagePath, ".")
 
 	if len(parts) < 2 {
-		return imagePath
+		return template.HTML(imagePath)
 	}
 
 	parts[len(parts)-2] = parts[len(parts)-2] + "@2x"
 
-	return strings.Join(parts, ".")
+	return template.HTML(strings.Join(parts, "."))
 }
 
 //////////////////////////////////////////////////////////////////////////////
