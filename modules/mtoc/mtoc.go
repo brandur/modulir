@@ -26,9 +26,8 @@ func RenderFromHTML(content string) (string, error) {
 // considers headers of maxLevel or lower. For example, if maxLevel is 2, only
 // h1s and h2s will be included.
 func RenderFromHTMLWithMaxLevel(content string, maxLevel int) (string, error) {
-	var headers []*header
-
 	matches := headerRegexp.FindAllStringSubmatch(content, -1)
+	headers := make([]*header, 0, len(matches))
 	for _, match := range matches {
 		level, err := strconv.Atoi(match[1])
 		if err != nil {
@@ -132,8 +131,8 @@ func buildTree(headers []*header) *html.Node {
 
 func renderTree(node *html.Node) (string, error) {
 	var b bytes.Buffer
-	err := html.Render(&b, node)
-	if err != nil {
+
+	if err := html.Render(&b, node); err != nil {
 		return "", err
 	}
 

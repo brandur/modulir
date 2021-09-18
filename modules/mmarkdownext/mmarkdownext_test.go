@@ -66,7 +66,8 @@ func TestTransformFigures(t *testing.T) {
 
 func TestTransformFootnotes(t *testing.T) {
 	assert.Equal(t, `
-<p>This is a reference <sup id="footnote-1-source"><a href="#footnote-1">1</a></sup> to a footnote <sup id="footnote-2-source"><a href="#footnote-2">2</a></sup>.</p>
+<p>This is a reference <sup id="footnote-1-source"><a href="#footnote-1">1</a></sup>
+to a footnote <sup id="footnote-2-source"><a href="#footnote-2">2</a></sup>.</p>
 
 <p>Not footnote: KEYS[1].</p>
 
@@ -79,7 +80,8 @@ func TestTransformFootnotes(t *testing.T) {
 </div>
 `,
 		must(transformFootnotes(`
-<p>This is a reference [1] to a footnote [2].</p>
+<p>This is a reference [1]
+to a footnote [2].</p>
 
 <p>Not footnote: KEYS[1].</p>
 

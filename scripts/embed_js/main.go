@@ -49,7 +49,7 @@ func main() {
 	// Gofmt
 	goStr += "\n"
 
-	if err := ioutil.WriteFile(goTarget, []byte(goStr), 0755); err != nil {
+	if err := ioutil.WriteFile(goTarget, []byte(goStr), 0o600); err != nil {
 		exitWithError(err)
 	}
 }

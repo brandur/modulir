@@ -266,8 +266,7 @@ func (c *Context) StartRound() {
 func (c *Context) Wait() []error {
 	c.Log.Debugf("Context Wait(); jobs queued: %v", len(c.Pool.Jobs))
 
-	c.Stats.LoopDuration =
-		c.Stats.LoopDuration + time.Since(c.Stats.lastLoopStart)
+	c.Stats.LoopDuration += time.Since(c.Stats.lastLoopStart)
 
 	defer func() {
 		// Reset the last loop start.

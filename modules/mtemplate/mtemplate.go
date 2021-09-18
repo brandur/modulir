@@ -49,8 +49,8 @@ var FuncMap = template.FuncMap{
 // HTML generated from Markdown.
 func CollapseParagraphs(s string) string {
 	sCollapsed := s
-	sCollapsed = strings.Replace(sCollapsed, "<p>", "", -1)
-	sCollapsed = strings.Replace(sCollapsed, "</p>", "", -1)
+	sCollapsed = strings.ReplaceAll(sCollapsed, "<p>", "")
+	sCollapsed = strings.ReplaceAll(sCollapsed, "</p>", "")
 	return collapseHTML(sCollapsed)
 }
 
@@ -94,31 +94,33 @@ const (
 // between two times.
 func DistanceOfTimeInWords(to, from time.Time) string {
 	d := from.Sub(to)
+
 	min := int(round(d.Minutes()))
 
-	if min == 0 {
+	switch {
+	case min == 0:
 		return "less than 1 minute"
-	} else if min == 1 {
+	case min == 1:
 		return fmt.Sprintf("%d minute", min)
-	} else if min >= 1 && min <= 44 {
+	case min >= 1 && min <= 44:
 		return fmt.Sprintf("%d minutes", min)
-	} else if min >= 45 && min <= 89 {
+	case min >= 45 && min <= 89:
 		return "about 1 hour"
-	} else if min >= 90 && min <= minutesInDay-1 {
+	case min >= 90 && min <= minutesInDay-1:
 		return fmt.Sprintf("about %d hours", int(round(d.Hours())))
-	} else if min >= minutesInDay && min <= minutesInDay*2-1 {
+	case min >= minutesInDay && min <= minutesInDay*2-1:
 		return "about 1 day"
-	} else if min >= 2520 && min <= minutesInMonth-1 {
+	case min >= 2520 && min <= minutesInMonth-1:
 		return fmt.Sprintf("%d days", int(round(d.Hours()/24.0)))
-	} else if min >= minutesInMonth && min <= minutesInMonth*2-1 {
+	case min >= minutesInMonth && min <= minutesInMonth*2-1:
 		return "about 1 month"
-	} else if min >= minutesInMonth*2 && min <= minutesInYear-1 {
+	case min >= minutesInMonth*2 && min <= minutesInYear-1:
 		return fmt.Sprintf("%d months", int(round(d.Hours()/24.0/30.0)))
-	} else if min >= minutesInYear && min <= minutesInYear+3*minutesInMonth-1 {
+	case min >= minutesInYear && min <= minutesInYear+3*minutesInMonth-1:
 		return "about 1 year"
-	} else if min >= minutesInYear+3*minutesInMonth-1 && min <= minutesInYear+9*minutesInMonth-1 {
+	case min >= minutesInYear+3*minutesInMonth-1 && min <= minutesInYear+9*minutesInMonth-1:
 		return "over 1 year"
-	} else if min >= minutesInYear+9*minutesInMonth && min <= minutesInYear*2-1 {
+	case min >= minutesInYear+9*minutesInMonth && min <= minutesInYear*2-1:
 		return "almost 2 years"
 	}
 
@@ -190,7 +192,7 @@ type htmlElementRenderer struct {
 }
 
 func (r *htmlElementRenderer) render() template.HTML {
-	var pairs []string
+	pairs := make([]string, 0, len(r.Attrs))
 	for name, val := range r.Attrs {
 		pairs = append(pairs, fmt.Sprintf(`%s="%s"`, name, val))
 	}
@@ -215,8 +217,7 @@ func (img *HTMLImage) render() template.HTML {
 		},
 	}
 
-	ext := filepath.Ext(img.Src)
-	if ext != ".svg" {
+	if ext := filepath.Ext(img.Src); ext != ".svg" {
 		retinaSource := strings.TrimSuffix(img.Src, ext) + "@2x" + ext
 		element.Attrs["srcset"] = fmt.Sprintf("%s 2x, %s 1x", retinaSource, img.Src)
 	}
@@ -300,17 +301,17 @@ var whitespaceRE = regexp.MustCompile(`>\s+<`)
 // constants, but then to make them fit a little more nicely into the rendered
 // markup.
 func collapseHTML(html string) string {
-	html = strings.Replace(html, "\n", "", -1)
+	html = strings.ReplaceAll(html, "\n", "")
 	html = whitespaceRE.ReplaceAllString(html, "><")
 	html = strings.TrimSpace(html)
 	return html
 }
 
-// There is no "round" function built into Go :/
+// There is no "round" function built into Go :/.
 func round(f float64) float64 {
 	return math.Floor(f + .5)
 }
 
 func toNonBreakingWhitespace(str string) string {
-	return strings.Replace(str, " ", " ", -1)
+	return strings.ReplaceAll(str, " ", " ")
 }

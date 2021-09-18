@@ -3,6 +3,7 @@ package mimage
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -101,7 +102,6 @@ type PhotoSize struct {
 func FetchAndResizeImage(c *modulir.Context,
 	u *url.URL, targetDir, targetSlug string,
 	cropGravity PhotoGravity, photoSizes []PhotoSize) (bool, error) {
-
 	if TempDir == "" {
 		return false, xerrors.Errorf("mimage.TempDir must be configured for image fetching")
 	}
@@ -136,7 +136,6 @@ func FetchAndResizeImage(c *modulir.Context,
 func ResizeImage(c *modulir.Context,
 	originalPath, targetDir, targetSlug string,
 	cropGravity PhotoGravity, photoSizes []PhotoSize) (bool, error) {
-
 	// source without an extension, e.g. `content/photographs/123`
 	sourceNoExt := filepath.Join(targetDir, targetSlug)
 
@@ -165,7 +164,7 @@ func ResizeImage(c *modulir.Context,
 
 	// After everything is done, created a marker file to indicate that the
 	// work doesn't need to be redone.
-	file, err := os.OpenFile(markerPath, os.O_RDONLY|os.O_CREATE, 0755)
+	file, err := os.OpenFile(markerPath, os.O_RDONLY|os.O_CREATE, 0o755)
 	if err != nil {
 		return true, xerrors.Errorf("error creating marker for image '%s': %w", targetSlug, err)
 	}
@@ -196,7 +195,12 @@ var photoMarkerCache = gocache.New(5*time.Minute, 10*time.Minute)
 func fetchData(c *modulir.Context, u *url.URL, target string) error {
 	c.Log.Debugf("Fetching file: %v", u.String())
 
-	resp, err := http.Get(u.String())
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, u.String(), nil)
+	if err != nil {
+		return xerrors.Errorf("error creating request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return xerrors.Errorf("error fetching: %v", u.String())
 	}
@@ -256,9 +260,8 @@ func markerExists(c *modulir.Context, sourceNoExt string) (string, bool) {
 	return markerPath, false
 }
 
-func resizeImage(c *modulir.Context,
+func resizeImage(_ *modulir.Context,
 	source, target string, width int, cropSettings *PhotoCropSettings, cropGravity PhotoGravity) error {
-
 	if MagickBin == "" {
 		return xerrors.Errorf("mimage.MagickBin must be configured for image resizing")
 	}
@@ -317,19 +320,22 @@ func resizeImage(c *modulir.Context,
 	}
 
 	if cropSettings != nil {
-		if isSquare && cropSettings.Square != "" {
+		switch {
+		case isSquare && cropSettings.Square != "":
 			resizeArgs = append(
 				resizeArgs,
 				"-crop",
 				cropSettings.Square,
 			)
-		} else if isLandscape && cropSettings.Landscape != "" {
+
+		case isLandscape && cropSettings.Landscape != "":
 			resizeArgs = append(
 				resizeArgs,
 				"-crop",
 				cropSettings.Landscape,
 			)
-		} else if isPortrait && cropSettings.Portrait != "" {
+
+		case isPortrait && cropSettings.Portrait != "":
 			resizeArgs = append(
 				resizeArgs,
 				"-crop",
@@ -351,14 +357,16 @@ func resizeImage(c *modulir.Context,
 	// If we have mozjpeg then output to stdout and let it take in the resized
 	// JPEG via pipe. Some for PNG. If not, then just resize to the target file
 	// immediately.
-	if ext == ".jpg" && MozJPEGBin != "" {
+	switch {
+	case ext == ".jpg" && MozJPEGBin != "":
 		resizeArgs = append(resizeArgs, "JPEG:-")
-	} else if ext == ".png" && PNGQuantBin != "" {
+	case ext == ".png" && PNGQuantBin != "":
 		resizeArgs = append(resizeArgs, "PNG:-")
-	} else {
+	default:
 		resizeArgs = append(resizeArgs, target)
 	}
 
+	//nolint:gosec
 	resizeCmd := exec.Command(resizeArgs[0], resizeArgs[1:]...)
 	resizeCmd.Stderr = &resizeErrOut
 

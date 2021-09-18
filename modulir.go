@@ -116,8 +116,7 @@ func BuildLoop(config *Config, f func(*Context) []error) {
 	signal.Notify(signals, unix.SIGUSR2)
 	for {
 		s := <-signals
-		switch s {
-		case unix.SIGUSR2:
+		if s == unix.SIGUSR2 {
 			shutdownAndExec(c, finish, watcher, server)
 		}
 	}
@@ -139,7 +138,6 @@ func BuildLoop(config *Config, f func(*Context) []error) {
 // Returns true of the last build was successful and false otherwise.
 func build(c *Context, f func(*Context) []error,
 	finish chan struct{}, buildComplete *sync.Cond) bool {
-
 	rebuild := make(chan map[string]struct{})
 	rebuildDone := make(chan struct{})
 
@@ -201,7 +199,6 @@ func build(c *Context, f func(*Context) []error,
 			len(c.Stats.JobsExecuted), c.Stats.NumJobs, c.Stats.NumRounds, len(c.Stats.JobsErrored),
 		)
 
-		lastChangedSources = nil
 		c.QuickPaths = nil
 
 		buildComplete.Broadcast()
@@ -236,7 +233,7 @@ func colorByStatus(c *Context, s string, success bool) string {
 func calculateTotalDuration(jobs []*Job) time.Duration {
 	var totalTime time.Duration
 	for _, job := range jobs {
-		totalTime = totalTime + job.Duration
+		totalTime += job.Duration
 	}
 	return totalTime
 }
@@ -245,7 +242,7 @@ func calculateTotalDuration(jobs []*Job) time.Duration {
 // before the build loop) so that we can start the HTTP server right away
 // instead of waiting for a build.
 func ensureTargetDir(c *Context) {
-	if err := os.MkdirAll(c.TargetDir, 0755); err != nil {
+	if err := os.MkdirAll(c.TargetDir, 0o755); err != nil {
 		exitWithError(xerrors.Errorf("error creating target directory: %w", err))
 	}
 }
@@ -300,7 +297,7 @@ func initContext(config *Config, watcher *fsnotify.Watcher) *Context {
 
 // Extract the names of keys out of a map and return them as a slice.
 func mapKeys(m map[string]struct{}) []string {
-	var keys []string
+	keys := make([]string, 0, len(m))
 	for key := range m {
 		keys = append(keys, key)
 	}
@@ -316,7 +313,6 @@ func mapKeys(m map[string]struct{}) []string {
 // before the replacement occurs.
 func shutdownAndExec(c *Context, finish chan struct{},
 	watcher *fsnotify.Watcher, server *http.Server) {
-
 	// Tell the build loop to finish up
 	finish <- struct{}{}
 
