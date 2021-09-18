@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 	"io"
 	"time"
+
+	"golang.org/x/xerrors"
 )
 
 // Category is a category of an Atom entry.
@@ -79,10 +81,14 @@ func (f *Feed) Encode(w io.Writer, indent string) error {
 
 	_, err := w.Write([]byte(xml.Header))
 	if err != nil {
-		return err
+		return xerrors.Errorf("error writing Atom feed header: %w", err)
 	}
 
 	enc := xml.NewEncoder(w)
 	enc.Indent("", indent)
-	return enc.Encode(f)
+	if err := enc.Encode(f); err != nil {
+		return xerrors.Errorf("error encoding Atom feed: %w", err)
+	}
+
+	return nil
 }

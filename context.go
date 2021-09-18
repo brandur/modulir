@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"golang.org/x/xerrors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -318,7 +319,7 @@ func (c *Context) addWatched(fileInfo os.FileInfo, absolutePath string) error {
 
 	err := c.Watcher.Add(absolutePath)
 	if err != nil {
-		return err
+		return xerrors.Errorf("error watching path '%s': %w", absolutePath, err)
 	}
 
 	c.watchedPathsMu.Lock()

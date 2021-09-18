@@ -110,12 +110,12 @@ create:
 
 	source, err = filepath.Abs(source)
 	if err != nil {
-		return err
+		return xerrors.Errorf("error getting absolute path for '%s': %w", source, err)
 	}
 
 	target, err = filepath.Abs(target)
 	if err != nil {
-		return err
+		return xerrors.Errorf("error getting absolute path for '%s': %w", target, err)
 	}
 
 	err = os.Symlink(source, target)

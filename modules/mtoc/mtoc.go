@@ -133,7 +133,7 @@ func renderTree(node *html.Node) (string, error) {
 	var b bytes.Buffer
 
 	if err := html.Render(&b, node); err != nil {
-		return "", err
+		return "", xerrors.Errorf("error rendering HTML: %w", err)
 	}
 
 	return b.String(), nil

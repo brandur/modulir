@@ -7,6 +7,7 @@ linters:
     - gochecknoinits
     - gochecknoglobals
     - gocognit
+    - gocyclo
     - godox
     - golint
     - gomnd
@@ -16,7 +17,7 @@ linters:
     - paralleltest
     - scopelint
     - testpackage
-    - wrapcheck
+    # - wrapcheck
     - wsl
   enable-all: true
 
@@ -36,3 +37,7 @@ linters-settings:
   gosec:
     excludes:
       - G203
+
+  wrapcheck:
+    ignorePackageGlobs:
+      - github.com/brandur/*

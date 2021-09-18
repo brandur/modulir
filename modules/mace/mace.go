@@ -37,7 +37,7 @@ func Load(c *modulir.Context, basePath, innerPath string, opts *ace.Options) (*t
 	// didn't set DynamicReload.
 	template, err := ace.Load(extlessBasePath, extlessInnerPath, opts)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("error loading Ace template '%s': %w", extlessInnerPath, err)
 	}
 
 	c.Log.Debugf("mace: Loaded template layout '%s' view '%s'",
