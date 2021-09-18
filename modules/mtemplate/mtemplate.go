@@ -11,6 +11,8 @@ import (
 	"strings"
 	texttemplate "text/template"
 	"time"
+
+	"golang.org/x/xerrors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -61,7 +63,7 @@ func CombineFuncMaps(funcMaps ...template.FuncMap) template.FuncMap {
 	for _, fm := range funcMaps {
 		for k, v := range fm {
 			if _, ok := combined[k]; ok {
-				panic(fmt.Errorf("duplicate function map key on combine: %s", k))
+				panic(xerrors.Errorf("duplicate function map key on combine: %s", k))
 			}
 
 			combined[k] = v

@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
+	"golang.org/x/xerrors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -94,7 +94,7 @@ func BuildLoop(config *Config, f func(*Context) []error) {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		exitWithError(errors.Wrap(err, "Error starting watcher"))
+		exitWithError(xerrors.Errorf("error starting watcher: %w", err))
 	}
 	defer watcher.Close()
 
@@ -246,7 +246,7 @@ func calculateTotalDuration(jobs []*Job) time.Duration {
 // instead of waiting for a build.
 func ensureTargetDir(c *Context) {
 	if err := os.MkdirAll(c.TargetDir, 0755); err != nil {
-		exitWithError(fmt.Errorf("Error creating target directory: %v", err))
+		exitWithError(xerrors.Errorf("error creating target directory: %w", err))
 	}
 }
 

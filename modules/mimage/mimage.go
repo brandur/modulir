@@ -18,7 +18,7 @@ import (
 	"github.com/brandur/modulir"
 	"github.com/brandur/modulir/modules/mfile"
 	gocache "github.com/patrickmn/go-cache"
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -102,7 +102,7 @@ func FetchAndResizeImage(c *modulir.Context,
 	cropGravity PhotoGravity, photoSizes []PhotoSize) (bool, error) {
 
 	if TempDir == "" {
-		return false, fmt.Errorf("mimage.TempDir must be configured for image fetching")
+		return false, xerrors.Errorf("mimage.TempDir must be configured for image fetching")
 	}
 
 	// source without an extension, e.g. `content/photographs/123`
@@ -124,7 +124,7 @@ func FetchAndResizeImage(c *modulir.Context,
 
 	err := fetchData(c, u, originalPath)
 	if err != nil {
-		return true, errors.Wrapf(err, "Error fetching image: %s", targetSlug)
+		return true, xerrors.Errorf("error fetching image '%s': %w", targetSlug, err)
 	}
 
 	return ResizeImage(c, originalPath, targetDir, targetSlug, cropGravity, photoSizes)
@@ -158,7 +158,7 @@ func ResizeImage(c *modulir.Context,
 		err := resizeImage(c, originalPath,
 			sourceNoExt+size.Suffix+ext, size.Width, size.CropSettings, cropGravity)
 		if err != nil {
-			return true, errors.Wrapf(err, "Error resizing image: %s", targetSlug)
+			return true, xerrors.Errorf("error resizing image '%s': %w", targetSlug, err)
 		}
 	}
 
@@ -166,7 +166,7 @@ func ResizeImage(c *modulir.Context,
 	// work doesn't need to be redone.
 	file, err := os.OpenFile(markerPath, os.O_RDONLY|os.O_CREATE, 0755)
 	if err != nil {
-		return true, errors.Wrapf(err, "Error creating marker for image: %s", targetSlug)
+		return true, xerrors.Errorf("error creating marker for image '%s': %w", targetSlug, err)
 	}
 	file.Close()
 
@@ -197,18 +197,18 @@ func fetchData(c *modulir.Context, u *url.URL, target string) error {
 
 	resp, err := http.Get(u.String())
 	if err != nil {
-		return errors.Wrapf(err, "Error fetching: %v", u.String())
+		return xerrors.Errorf("error fetching: %v", u.String())
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Unexpected status code fetching '%v': %d",
+		return xerrors.Errorf("unexpected status code fetching '%v': %d",
 			u.String(), resp.StatusCode)
 	}
 
 	f, err := os.Create(target)
 	if err != nil {
-		return errors.Wrapf(err, "Error creating: %v", target)
+		return xerrors.Errorf("error creating '%v': %w", target, err)
 	}
 	defer f.Close()
 
@@ -219,8 +219,8 @@ func fetchData(c *modulir.Context, u *url.URL, target string) error {
 
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
-		return errors.Wrapf(err, "Error copying to '%v' from HTTP response",
-			target)
+		return xerrors.Errorf("error copying to '%v' from HTTP response: %w",
+			target, err)
 	}
 
 	return nil
@@ -259,7 +259,7 @@ func resizeImage(c *modulir.Context,
 	source, target string, width int, cropSettings *PhotoCropSettings, cropGravity PhotoGravity) error {
 
 	if MagickBin == "" {
-		return fmt.Errorf("mimage.MagickBin must be configured for image resizing")
+		return xerrors.Errorf("mimage.MagickBin must be configured for image resizing")
 	}
 
 	out, err := exec.Command(
@@ -272,20 +272,20 @@ func resizeImage(c *modulir.Context,
 		"info:",
 	).CombinedOutput()
 	if err != nil {
-		return errors.Wrapf(err, "Error running convert info command (out: '%s')",
-			string(out))
+		return xerrors.Errorf("error running convert info command (out: '%s'): %w",
+			string(out), err)
 	}
 
 	dimensions := strings.Split(string(out), " ")
 
 	imageWidth, err := strconv.Atoi(dimensions[0])
 	if err != nil {
-		return errors.Wrapf(err, "Error converting width '%s' to integer", dimensions[0])
+		return xerrors.Errorf("error converting width '%s' to integer: %w", dimensions[0], err)
 	}
 
 	imageHeight, err := strconv.Atoi(dimensions[1])
 	if err != nil {
-		return errors.Wrapf(err, "Error converting height '%s' to integer", dimensions[1])
+		return xerrors.Errorf("error converting height '%s' to integer: %w", dimensions[1], err)
 	}
 
 	// Consider square if ratio of width to height within 10%
@@ -389,24 +389,24 @@ func resizeImage(c *modulir.Context,
 	}
 
 	if err := resizeCmd.Start(); err != nil {
-		return errors.Wrapf(err, "Error starting resize command")
+		return xerrors.Errorf("error starting resize command: %w", err)
 	}
 
 	if optimizeCmd != nil {
 		if err := optimizeCmd.Start(); err != nil {
-			return errors.Wrapf(err, "Error starting optimize command")
+			return xerrors.Errorf("error starting optimize command: %w", err)
 		}
 	}
 
 	if err := resizeCmd.Wait(); err != nil {
-		return fmt.Errorf("%v (stderr: %v)", err, resizeErrOut.String())
+		return xerrors.Errorf("error resizing (stderr: %v): %w", resizeErrOut.String(), err)
 	}
 
 	w.Close()
 
 	if optimizeCmd != nil {
 		if err := optimizeCmd.Wait(); err != nil {
-			return fmt.Errorf("%v (stderr: %v)", err, optimizeErrOut.String())
+			return xerrors.Errorf("error resizing: (stderr: %v): %w", optimizeErrOut.String(), err)
 		}
 	}
 

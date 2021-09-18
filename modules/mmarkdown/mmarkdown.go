@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 
 	"github.com/brandur/modulir"
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 	"gopkg.in/russross/blackfriday.v2"
 )
 
@@ -29,14 +29,14 @@ func Render(c *modulir.Context, data []byte) []byte {
 func RenderFile(c *modulir.Context, source, target string) error {
 	inData, err := ioutil.ReadFile(source)
 	if err != nil {
-		return errors.Wrap(err, "Error reading file")
+		return xerrors.Errorf("error reading file: %w", err)
 	}
 
 	outData := Render(c, inData)
 
 	err = ioutil.WriteFile(target, outData, 0644)
 	if err != nil {
-		return errors.Wrap(err, "Error writing file")
+		return xerrors.Errorf("error writing file: %w", err)
 	}
 
 	c.Log.Debugf("mmarkdown: Rendered '%s' to '%s'", source, target)

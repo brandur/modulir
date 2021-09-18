@@ -2,24 +2,24 @@ package mtoml
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"io/ioutil"
 
 	"github.com/brandur/modulir"
 	"github.com/pelletier/go-toml"
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 // ParseFile is a shortcut from parsing a source file as TOML.
 func ParseFile(c *modulir.Context, source string, v interface{}) error {
 	data, err := ioutil.ReadFile(source)
 	if err != nil {
-		return errors.Wrap(err, "Error reading file")
+		return xerrors.Errorf("error reading file: %w", err)
 	}
 
 	err = toml.Unmarshal(data, v)
 	if err != nil {
-		return errors.Wrap(err, "Error unmarshaling TOML")
+		return xerrors.Errorf("error unmarshaling TOML: %w", err)
 	}
 
 	c.Log.Debugf("mtoml: Parsed file: %s", source)
@@ -31,7 +31,7 @@ func ParseFile(c *modulir.Context, source string, v interface{}) error {
 func ParseFileFrontmatter(c *modulir.Context, source string, v interface{}) ([]byte, error) {
 	data, err := ioutil.ReadFile(source)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error reading file")
+		return nil, xerrors.Errorf("error reading file: %w", err)
 	}
 
 	frontmatter, content, err := splitFrontmatter(data)
@@ -41,7 +41,7 @@ func ParseFileFrontmatter(c *modulir.Context, source string, v interface{}) ([]b
 
 	err = toml.Unmarshal(frontmatter, v)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error unmarshaling TOML frontmatter")
+		return nil, xerrors.Errorf("error unmarshaling TOML frontmatter: %w", err)
 	}
 
 	c.Log.Debugf("mtoml: Parsed file frontmatter: %s", source)
@@ -52,7 +52,7 @@ func ParseFileFrontmatter(c *modulir.Context, source string, v interface{}) ([]b
 // Private
 //
 
-var errBadFrontmatter = fmt.Errorf("Unable to split TOML frontmatter")
+var errBadFrontmatter = errors.New("error splitting TOML frontmatter")
 
 func splitFrontmatter(data []byte) ([]byte, []byte, error) {
 	parts := bytes.Split(data, []byte("+++\n"))

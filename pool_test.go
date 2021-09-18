@@ -1,10 +1,10 @@
 package modulir
 
 import (
-	"fmt"
 	"testing"
 
 	assert "github.com/stretchr/testify/require"
+	"golang.org/x/xerrors"
 )
 
 func TestEmptyPool(t *testing.T) {
@@ -77,7 +77,7 @@ func TestWithError(t *testing.T) {
 	p.Jobs <- j0
 	j1 := NewJob("job 1", func() (bool, error) { return true, nil })
 	p.Jobs <- j1
-	j2 := NewJob("job 2", func() (bool, error) { return true, fmt.Errorf("error") })
+	j2 := NewJob("job 2", func() (bool, error) { return true, xerrors.Errorf("error") })
 	p.Jobs <- j2
 	p.Wait()
 
@@ -85,7 +85,7 @@ func TestWithError(t *testing.T) {
 	assert.Equal(t, 3, len(p.JobsAll))
 	assert.Equal(t, 1, len(p.JobsErrored))
 	assert.Equal(t, 3, len(p.JobsExecuted)) // Number of `return true` above
-	assert.Equal(t, []error{fmt.Errorf("error")}, p.JobErrors())
+	assert.Equal(t, []string{"error"}, errorStrings(p.JobErrors()))
 
 	// Check state on individual jobs
 	assert.Equal(t, true, j0.Executed)
@@ -93,7 +93,7 @@ func TestWithError(t *testing.T) {
 	assert.Equal(t, true, j1.Executed)
 	assert.Equal(t, nil, j1.Err)
 	assert.Equal(t, true, j2.Executed)
-	assert.Equal(t, fmt.Errorf("error"), j2.Err)
+	assert.Equal(t, "error", j2.Err.Error())
 }
 
 func TestWorkJob(t *testing.T) {
@@ -127,7 +127,7 @@ func TestWorkJob_Error(t *testing.T) {
 	j := &Job{
 		F: func() (bool, error) {
 			executed = true
-			return true, fmt.Errorf("error")
+			return true, xerrors.Errorf("error")
 		},
 		Name: "TestJob",
 	}
@@ -139,10 +139,10 @@ func TestWorkJob_Error(t *testing.T) {
 
 	assert.Equal(t, 1, len(p.JobsErrored))
 	assert.Equal(t, 1, len(p.JobsExecuted))
-	assert.Equal(t, []error{fmt.Errorf("error")}, p.JobErrors())
+	assert.Equal(t, []string{"error"}, errorStrings(p.JobErrors()))
 
 	assert.Equal(t, true, j.Executed)
-	assert.Equal(t, fmt.Errorf("error"), j.Err)
+	assert.Equal(t, "error", j.Err.Error())
 }
 
 func TestWorkJob_Panic(t *testing.T) {
@@ -152,7 +152,7 @@ func TestWorkJob_Panic(t *testing.T) {
 	j := &Job{
 		F: func() (bool, error) {
 			executed = true
-			panic(fmt.Errorf("error"))
+			panic(xerrors.Errorf("error"))
 		},
 		Name: "TestJob",
 	}
@@ -166,10 +166,10 @@ func TestWorkJob_Panic(t *testing.T) {
 	assert.Equal(t, 0, len(p.JobsExecuted))
 
 	err := p.JobErrors()[0]
-	assert.Equal(t, "Job panicked: error", err.Error())
+	assert.Equal(t, "job panicked: error", err.Error())
 
 	assert.Equal(t, false, j.Executed)
-	assert.Equal(t, "Job panicked: error", j.Err.Error())
+	assert.Equal(t, "job panicked: error", j.Err.Error())
 }
 
 func TestWorkJob_PanicString(t *testing.T) {
@@ -191,8 +191,16 @@ func TestWorkJob_PanicString(t *testing.T) {
 
 	assert.Equal(t, 1, len(p.JobsErrored))
 	assert.Equal(t, 0, len(p.JobsExecuted))
-	assert.Equal(t, []error{fmt.Errorf("Job panicked: error")}, p.JobErrors())
+	assert.Equal(t, []string{"job panicked: error"}, errorStrings(p.JobErrors()))
 
 	assert.Equal(t, false, j.Executed)
-	assert.Equal(t, fmt.Errorf("Job panicked: error"), j.Err)
+	assert.Equal(t, "job panicked: error", j.Err.Error())
+}
+
+func errorStrings(errs []error) []string {
+	strs := make([]string, len(errs))
+	for i, err := range errs {
+		strs[i] = err.Error()
+	}
+	return strs
 }
