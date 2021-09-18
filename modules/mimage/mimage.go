@@ -130,7 +130,7 @@ func FetchAndResizeImage(c *modulir.Context,
 	return ResizeImage(c, originalPath, targetDir, targetSlug, cropGravity, photoSizes)
 }
 
-// FetchAndResizeImage fetches an image from a URL and resizes it according to
+// ResizeImage fetches an image from a URL and resizes it according to
 // specifications.
 func ResizeImage(c *modulir.Context,
 	originalPath, targetDir, targetSlug string,
