@@ -7,9 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/brandur/modulir"
 	"github.com/yosssi/ace"
 	"golang.org/x/xerrors"
+
+	"github.com/brandur/modulir"
 )
 
 // Load loads an Ace template.

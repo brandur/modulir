@@ -5,9 +5,10 @@ import (
 	"errors"
 	"io/ioutil"
 
-	"github.com/brandur/modulir"
 	"golang.org/x/xerrors"
 	"gopkg.in/yaml.v2"
+
+	"github.com/brandur/modulir"
 )
 
 // ParseFile is a shortcut from parsing a source file as YAML.

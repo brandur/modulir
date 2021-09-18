@@ -15,10 +15,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brandur/modulir"
-	"github.com/brandur/modulir/modules/mfile"
 	gocache "github.com/patrickmn/go-cache"
 	"golang.org/x/xerrors"
+
+	"github.com/brandur/modulir"
+	"github.com/brandur/modulir/modules/mfile"
 )
 
 //////////////////////////////////////////////////////////////////////////////

@@ -4,8 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/brandur/modulir/modules/mtesting"
 	assert "github.com/stretchr/testify/require"
+
+	"github.com/brandur/modulir/modules/mtesting"
 )
 
 func TestSplitFrontmatter(t *testing.T) {

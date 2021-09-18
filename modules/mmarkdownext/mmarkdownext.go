@@ -11,9 +11,10 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/brandur/modulir/modules/mtemplate"
 	"golang.org/x/xerrors"
 	"gopkg.in/russross/blackfriday.v2"
+
+	"github.com/brandur/modulir/modules/mtemplate"
 )
 
 //////////////////////////////////////////////////////////////////////////////

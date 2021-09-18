@@ -9,9 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brandur/modulir"
 	gocache "github.com/patrickmn/go-cache"
 	"golang.org/x/xerrors"
+
+	"github.com/brandur/modulir"
 )
 
 //////////////////////////////////////////////////////////////////////////////

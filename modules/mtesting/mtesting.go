@@ -4,8 +4,9 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/brandur/modulir"
 	assert "github.com/stretchr/testify/require"
+
+	"github.com/brandur/modulir"
 )
 
 // NewContext is a convenience helper to create a new modulir.Context suitable

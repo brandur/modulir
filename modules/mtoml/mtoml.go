@@ -5,9 +5,10 @@ import (
 	"errors"
 	"io/ioutil"
 
-	"github.com/brandur/modulir"
 	"github.com/pelletier/go-toml"
 	"golang.org/x/xerrors"
+
+	"github.com/brandur/modulir"
 )
 
 // ParseFile is a shortcut from parsing a source file as TOML.
