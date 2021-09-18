@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/pkg/errors"
 	"golang.org/x/net/html"
+	"golang.org/x/xerrors"
 )
 
 type header struct {
@@ -32,7 +32,7 @@ func RenderFromHTMLWithMaxLevel(content string, maxLevel int) (string, error) {
 	for _, match := range matches {
 		level, err := strconv.Atoi(match[1])
 		if err != nil {
-			return "", errors.Wrap(err, "Error extracting header level")
+			return "", xerrors.Errorf("error extracting header level: %w", err)
 		}
 
 		if maxLevel != -1 && level > maxLevel {

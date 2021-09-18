@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/brandur/modulir"
-	"github.com/pkg/errors"
 	"github.com/yosssi/ace"
+	"golang.org/x/xerrors"
 )
 
 // Load loads an Ace template.
@@ -52,12 +52,12 @@ func Render(c *modulir.Context, basePath, innerPath string, writer io.Writer,
 
 	template, err := Load(c, basePath, innerPath, opts)
 	if err != nil {
-		return errors.Wrap(err, "Error loading template")
+		return xerrors.Errorf("error loading template: %w", err)
 	}
 
 	err = template.Execute(writer, locals)
 	if err != nil {
-		return errors.Wrap(err, "Error rendering template")
+		return xerrors.Errorf("error rendering template: %w", err)
 	}
 
 	c.Log.Debugf("mace: Rendered view '%s'", innerPath)
@@ -71,12 +71,12 @@ func RenderFile(c *modulir.Context, basePath, innerPath, target string,
 
 	template, err := Load(c, basePath, innerPath, opts)
 	if err != nil {
-		return errors.Wrap(err, "Error loading template")
+		return xerrors.Errorf("error loading template: %w", err)
 	}
 
 	file, err := os.Create(target)
 	if err != nil {
-		return errors.Wrap(err, "Error creating target file")
+		return xerrors.Errorf("error creating target file: %w", err)
 	}
 	defer file.Close()
 
@@ -85,7 +85,7 @@ func RenderFile(c *modulir.Context, basePath, innerPath, target string,
 
 	err = template.Execute(writer, locals)
 	if err != nil {
-		return errors.Wrap(err, "Error rendering template")
+		return xerrors.Errorf("error rendering template: %w", err)
 	}
 
 	c.Log.Debugf("mace: Rendered view '%s' to '%s'", innerPath, target)

@@ -1,0 +1,10 @@
+linters:
+  enable:
+    - forbidigo
+
+linters-settings:
+  forbidigo:
+    forbid:
+      - '^errors\.Wrap$'
+      - '^errors\.Wrapf$'
+      - '^fmt\.Errorf$'

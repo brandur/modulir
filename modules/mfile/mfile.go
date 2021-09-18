@@ -11,7 +11,7 @@ import (
 
 	"github.com/brandur/modulir"
 	gocache "github.com/patrickmn/go-cache"
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -28,19 +28,19 @@ import (
 func CopyFile(c *modulir.Context, source, target string) error {
 	in, err := os.Open(source)
 	if err != nil {
-		return errors.Wrap(err, "Error opening copy source")
+		return xerrors.Errorf("error opening copy source: %w", err)
 	}
 	defer in.Close()
 
 	out, err := os.Create(target)
 	if err != nil {
-		return errors.Wrap(err, "Error creating copy target")
+		return xerrors.Errorf("error creating copy target: %w", err)
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, in)
 	if err != nil {
-		return errors.Wrap(err, "Error copying data")
+		return xerrors.Errorf("error copying data: %w", err)
 	}
 
 	c.Log.Debugf("mfile: Copied '%s' to '%s'", source, target)
@@ -57,7 +57,7 @@ func CopyFileToDir(c *modulir.Context, source, targetDir string) error {
 func EnsureDir(c *modulir.Context, target string) error {
 	err := os.MkdirAll(target, 0755)
 	if err != nil {
-		return errors.Wrap(err, "Error creating directory")
+		return xerrors.Errorf("error creating directory: %w", err)
 	}
 
 	c.Log.Debugf("mfile: Ensured dir existence: %s", target)
@@ -86,12 +86,12 @@ func EnsureSymlink(c *modulir.Context, source, target string) error {
 		goto create
 	}
 	if err != nil {
-		return errors.Wrap(err, "Error checking symlink")
+		return xerrors.Errorf("error checking symlink: %w", err)
 	}
 
 	actual, err = os.Readlink(target)
 	if err != nil {
-		return errors.Wrap(err, "Error reading symlink")
+		return xerrors.Errorf("error reading symlink: %w", err)
 	}
 
 	if actual == source {
@@ -104,7 +104,7 @@ func EnsureSymlink(c *modulir.Context, source, target string) error {
 create:
 	err = os.RemoveAll(target)
 	if err != nil {
-		return errors.Wrap(err, "Error removing symlink")
+		return xerrors.Errorf("error removing symlink: %w", err)
 	}
 
 	source, err = filepath.Abs(source)
@@ -119,7 +119,7 @@ create:
 
 	err = os.Symlink(source, target)
 	if err != nil {
-		return errors.Wrap(err, "Error creating symlink")
+		return xerrors.Errorf("error creating symlink: %w", err)
 	}
 
 	return nil
@@ -237,7 +237,7 @@ func ReadDirWithOptions(c *modulir.Context, source string,
 
 	infos, err := ioutil.ReadDir(source)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error reading directory")
+		return nil, xerrors.Errorf("error reading directory: %w", err)
 	}
 
 	var files []string

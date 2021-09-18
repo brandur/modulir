@@ -1,12 +1,11 @@
 package modulir
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -462,11 +461,11 @@ func (p *Pool) workJob(workerNum int, job *Job) {
 		var panicked bool
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
-				jobErr = errors.Wrap(err, "Job panicked")
+				jobErr = xerrors.Errorf("job panicked: %w", err)
 			} else {
 				// Panics are often just given a string to panic with, so make
 				// sure to handle that as well
-				jobErr = fmt.Errorf("Job panicked: %v", r)
+				jobErr = xerrors.Errorf("job panicked: %v", r)
 			}
 			panicked = true
 		}

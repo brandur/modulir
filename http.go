@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 //////////////////////////////////////////////////////////////////////////////
@@ -48,7 +48,7 @@ func startServingTargetDirHTTP(c *Context, buildComplete *sync.Cond) *http.Serve
 		// ListenAndServe always returns a non-nil error (but if started
 		// successfully, it'll block for a long time).
 		if err != http.ErrServerClosed {
-			exitWithError(errors.Wrap(err, "Error starting HTTP server"))
+			exitWithError(xerrors.Errorf("error starting HTTP server: %w", err))
 		}
 	}()
 

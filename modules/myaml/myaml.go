@@ -2,11 +2,11 @@ package myaml
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"io/ioutil"
 
 	"github.com/brandur/modulir"
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -14,12 +14,12 @@ import (
 func ParseFile(c *modulir.Context, source string, v interface{}) error {
 	raw, err := ioutil.ReadFile(source)
 	if err != nil {
-		return errors.Wrap(err, "Error reading file")
+		return xerrors.Errorf("error reading file: %w", err)
 	}
 
 	err = yaml.Unmarshal(raw, v)
 	if err != nil {
-		return errors.Wrap(err, "Error unmarshaling YAML")
+		return xerrors.Errorf("error unmarshaling YAML: %w", err)
 	}
 
 	c.Log.Debugf("myaml: Parsed file: %s", source)
@@ -31,7 +31,7 @@ func ParseFile(c *modulir.Context, source string, v interface{}) error {
 func ParseFileFrontmatter(c *modulir.Context, source string, v interface{}) ([]byte, error) {
 	data, err := ioutil.ReadFile(source)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error reading file")
+		return nil, xerrors.Errorf("error reading file: %w", err)
 	}
 
 	frontmatter, content, err := splitFrontmatter(data)
@@ -41,7 +41,7 @@ func ParseFileFrontmatter(c *modulir.Context, source string, v interface{}) ([]b
 
 	err = yaml.Unmarshal(frontmatter, v)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error unmarshaling YAML frontmatter")
+		return nil, xerrors.Errorf("error unmarshaling YAML frontmatter: %w", err)
 	}
 
 	c.Log.Debugf("myaml: Parsed file frontmatter: %s", source)
@@ -52,7 +52,7 @@ func ParseFileFrontmatter(c *modulir.Context, source string, v interface{}) ([]b
 // Private
 //
 
-var errBadFrontmatter = fmt.Errorf("Unable to split YAML frontmatter")
+var errBadFrontmatter = errors.New("error splitting YAML frontmatter")
 
 func splitFrontmatter(data []byte) ([]byte, []byte, error) {
 	parts := bytes.Split(data, []byte("---\n"))

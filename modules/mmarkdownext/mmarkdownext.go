@@ -12,7 +12,7 @@ import (
 	"text/template"
 
 	"github.com/brandur/modulir/modules/mtemplate"
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 	"gopkg.in/russross/blackfriday.v2"
 )
 
@@ -173,7 +173,7 @@ func transformGoTemplate(source string, options *RenderOptions) (string, error) 
 
 	tmpl, err := template.New("fmarkdownTemp").Funcs(FuncMap).Parse(source)
 	if err != nil {
-		return "", errors.Wrap(err, "error parsing template")
+		return "", xerrors.Errorf("error parsing template: %w", err)
 	}
 
 	var templateData interface{}
@@ -185,7 +185,7 @@ func transformGoTemplate(source string, options *RenderOptions) (string, error) 
 	var b bytes.Buffer
 	err = tmpl.Execute(&b, templateData)
 	if err != nil {
-		return "", errors.Wrap(err, "error executing template")
+		return "", xerrors.Errorf("error executing template: %w", err)
 	}
 
 	// fmt.Printf("output in = %v ...\n", b.String())
