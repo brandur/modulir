@@ -63,7 +63,8 @@ jobs:
       - name: Install PNGQuant
         run: sudo apt-get install pngquant
 
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
       - name: Debug
         run: |
@@ -103,7 +104,8 @@ jobs:
     timeout-minutes: 3
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
       - name: "Check: golangci-lint"
         uses: golangci/golangci-lint-action@v2
