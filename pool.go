@@ -80,7 +80,6 @@ type Pool struct {
 
 	colorizer      *colorizer
 	concurrency    int
-	initialized    bool
 	jobsInternal   chan *Job
 	jobsErroredMu  sync.Mutex
 	jobsExecutedMu sync.Mutex
@@ -283,10 +282,7 @@ func (p *Pool) Wait() bool {
 	// Occasionally useful for debugging.
 	//p.logWaitTimeoutInfo()
 
-	if p.JobsErrored != nil {
-		return false
-	}
-	return true
+	return p.JobsErrored == nil
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -458,7 +454,7 @@ func (p *Pool) workJob(workerNum int, job *Job) {
 	start := time.Now()
 
 	defer func() {
-		job.Duration = time.Now().Sub(start)
+		job.Duration = time.Since(start)
 
 		// Kill the timeout Goroutine.
 		done <- struct{}{}

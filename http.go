@@ -150,10 +150,18 @@ func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{
 
 	conn.SetReadLimit(websocketMaxMessageSize)
 
-	conn.SetReadDeadline(time.Now().Add(websocketPongWait))
+	if err := conn.SetReadDeadline(time.Now().Add(websocketPongWait)); err != nil {
+		c.Log.Errorf(logPrefix(c, conn)+"Couldn't set WebSocket read deadline: %v",
+			err)
+		return
+	}
+
 	conn.SetPongHandler(func(string) error {
 		c.Log.Debugf(logPrefix(c, conn) + "Received pong")
-		conn.SetReadDeadline(time.Now().Add(websocketPongWait))
+		if err := conn.SetReadDeadline(time.Now().Add(websocketPongWait)); err != nil {
+			c.Log.Errorf(logPrefix(c, conn)+"Couldn't set WebSocket read deadline: %v",
+				err)
+		}
 		return nil
 	})
 
@@ -229,7 +237,10 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 	for {
 		select {
 		case <-buildCompleteChan:
-			conn.SetWriteDeadline(time.Now().Add(websocketWriteWait))
+			if err := conn.SetWriteDeadline(time.Now().Add(websocketWriteWait)); err != nil {
+				c.Log.Errorf(logPrefix(c, conn)+"Couldn't set WebSocket read deadline: %v",
+					err)
+			}
 			writeErr = conn.WriteJSON(websocketEvent{Type: "build_complete"})
 
 			// Send shouldn't strictly need to be non-blocking, but we do one
@@ -245,7 +256,10 @@ func websocketWritePump(c *Context, conn *websocket.Conn,
 
 		case <-ticker.C:
 			c.Log.Debugf(logPrefix(c, conn) + "Sending ping")
-			conn.SetWriteDeadline(time.Now().Add(websocketWriteWait))
+			if err := conn.SetWriteDeadline(time.Now().Add(websocketWriteWait)); err != nil {
+				c.Log.Errorf(logPrefix(c, conn)+"Couldn't set WebSocket read deadline: %v",
+					err)
+			}
 			writeErr = conn.WriteMessage(websocket.PingMessage, nil)
 		}
 
