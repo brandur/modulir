@@ -17,7 +17,6 @@ linters:
     - paralleltest
     - scopelint
     - testpackage
-    # - wrapcheck
     - wsl
   enable-all: true
 
