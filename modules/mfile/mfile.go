@@ -183,6 +183,9 @@ func ReadDir(c *modulir.Context, source string) ([]string, error) {
 
 // ReadDirOptions are options for ReadDirWithOptions.
 type ReadDirOptions struct {
+	// RecurseDir tells the function to recurse into subdirectories.
+	RecurseDirs bool
+
 	// ShowBackup tells the function to not skip backup files like those
 	// produced by Vim. These are suffixed with a tilde '~'.
 	ShowBackup bool
@@ -261,6 +264,21 @@ func ReadDirWithOptions(c *modulir.Context, source string,
 		}
 
 		files = append(files, path.Join(source, info.Name()))
+	}
+
+	if opts != nil && opts.RecurseDirs {
+		for _, info := range infos {
+			if !info.IsDir() {
+				continue
+			}
+
+			dirFiles, err := ReadDirWithOptions(c, path.Join(source, info.Name()), opts)
+			if err != nil {
+				return nil, err
+			}
+
+			files = append(files, dirFiles...)
+		}
 	}
 
 	c.Log.Debugf("mfile: Read dir: %s", source)

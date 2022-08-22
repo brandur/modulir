@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 3
 
     env:
-      GO_VERSION: 1.17
+      GO_VERSION: 1.18
 
     steps:
       - name: Install Go
@@ -43,9 +43,6 @@ jobs:
             /home/runner/imagemagick/
             /opt/mozjpeg/
           key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-cache-dependencies-v2
-
-      - name: Install Golint
-        run: go get -u golang.org/x/lint/golint
 
       # The copy of ImageMagick we could get from apt-get is ancient and
       # doesn't handle niceties like `.heic` files, so here we get the binary
@@ -94,15 +91,6 @@ jobs:
 
       - name: "Check: Gofmt"
         run: make check-gofmt
-
-      - name: "Check: Golint"
-        # I usually run tasks through make, but for some reasons GitHub Actions
-        # really doesn't like the `make lint` task, so I've unfurled it here.
-        # The error:
-        #
-        #     /home/runner/work/_temp/fcd52edc-894a-48eb-bf93-f8b8d5752bce.sh: line 1: unexpected EOF while looking for matching `"'
-        #
-        run: $(go env GOPATH)/bin/golint -set_exit_status ./...
 
   golangci-lint:
     runs-on: ubuntu-latest
