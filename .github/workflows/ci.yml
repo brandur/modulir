@@ -52,7 +52,7 @@ jobs:
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
         run: |
           mkdir -p $HOME/imagemagick/bin/
-          curl -L -o $HOME/imagemagick/bin/magick https://imagemagick.org/download/binaries/magick
+          curl -L -o $HOME/imagemagick/bin/magick https://imagemagick.org/archive/binaries/magick
           chmod +x $HOME/imagemagick/bin/magick
 
       # Uses an artifact built by: https://github.com/brandur/mozjpeg-builder
@@ -102,3 +102,6 @@ jobs:
 
       - name: "Check: golangci-lint"
         uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.49
+

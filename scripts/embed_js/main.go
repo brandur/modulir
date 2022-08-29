@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,7 +32,7 @@ func main() {
 		file := filepath.Base(source)
 		name := strings.TrimSuffix(file, filepath.Ext(file))
 
-		data, err := ioutil.ReadFile(source)
+		data, err := os.ReadFile(source)
 		if err != nil {
 			exitWithError(err)
 		}
@@ -49,7 +48,7 @@ func main() {
 	// Gofmt
 	goStr += "\n"
 
-	if err := ioutil.WriteFile(goTarget, []byte(goStr), 0o600); err != nil {
+	if err := os.WriteFile(goTarget, []byte(goStr), 0o600); err != nil {
 		exitWithError(err)
 	}
 }

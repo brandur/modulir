@@ -39,8 +39,9 @@ func startServingTargetDirHTTP(c *Context, buildComplete *sync.Cond) *http.Serve
 	}
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%v", c.Port),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%v", c.Port),
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second, // protect against Slowloris attack
 	}
 
 	go func() {
@@ -185,7 +186,8 @@ func websocketReadPump(c *Context, conn *websocket.Conn, connClosed chan struct{
 }
 
 func websocketWritePump(c *Context, conn *websocket.Conn,
-	connClosed chan struct{}, buildComplete *sync.Cond) {
+	connClosed chan struct{}, buildComplete *sync.Cond,
+) {
 	ticker := time.NewTicker(websocketPingPeriod)
 	defer func() {
 		ticker.Stop()

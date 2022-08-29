@@ -137,7 +137,8 @@ func BuildLoop(config *Config, f func(*Context) []error) {
 //
 // Returns true of the last build was successful and false otherwise.
 func build(c *Context, f func(*Context) []error,
-	finish chan struct{}, buildComplete *sync.Cond) bool {
+	finish chan struct{}, buildComplete *sync.Cond,
+) bool {
 	rebuild := make(chan map[string]struct{})
 	rebuildDone := make(chan struct{})
 
@@ -312,7 +313,8 @@ func mapKeys(m map[string]struct{}) []string {
 // The fsnotify watcher and HTTP server are shut down as gracefully as possible
 // before the replacement occurs.
 func shutdownAndExec(c *Context, finish chan struct{},
-	watcher *fsnotify.Watcher, server *http.Server) {
+	watcher *fsnotify.Watcher, server *http.Server,
+) {
 	// Tell the build loop to finish up
 	finish <- struct{}{}
 

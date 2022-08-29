@@ -25,7 +25,8 @@ import (
 // signaled rebuildDone, so there is a possibility that in the case of very
 // fast consecutive changes the build might not be perfectly up to date.
 func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan error,
-	rebuild chan map[string]struct{}, rebuildDone chan struct{}) {
+	rebuild chan map[string]struct{}, rebuildDone chan struct{},
+) {
 	var changedSources, lastChangedSources map[string]struct{}
 	var lastRebuild time.Time
 
@@ -100,12 +101,12 @@ func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan 
 				// Wait until rebuild is finished. In the meantime, accumulate
 				// new events that come in on the watcher's channel and prepare
 				// for the next loop.
-			INNER_LOOP:
+			innerLoop:
 				for {
 					select {
 					case <-rebuildDone:
 						// Break and start next outer loop
-						break INNER_LOOP
+						break innerLoop
 
 					case event, ok := <-watchEvents:
 						if !ok {
@@ -159,7 +160,8 @@ const sameFileQuiesceTime = 100 * time.Millisecond
 
 // See comment over this function's invocation.
 func buildWithinSameFileQuiesce(lastRebuild, now time.Time,
-	changedSources, lastChangedSources map[string]struct{}) bool {
+	changedSources, lastChangedSources map[string]struct{},
+) bool {
 	if lastChangedSources == nil {
 		return false
 	}

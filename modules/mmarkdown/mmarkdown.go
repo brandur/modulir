@@ -1,7 +1,7 @@
 package mmarkdown
 
 import (
-	"io/ioutil"
+	"os"
 
 	"golang.org/x/xerrors"
 	"gopkg.in/russross/blackfriday.v2"
@@ -28,14 +28,14 @@ func Render(c *modulir.Context, data []byte) []byte {
 // RenderFile is a shortcut for rendering a source file to Markdown in a target
 // file via Black Friday.
 func RenderFile(c *modulir.Context, source, target string) error {
-	inData, err := ioutil.ReadFile(source)
+	inData, err := os.ReadFile(source)
 	if err != nil {
 		return xerrors.Errorf("error reading file: %w", err)
 	}
 
 	outData := Render(c, inData)
 
-	err = ioutil.WriteFile(target, outData, 0o600)
+	err = os.WriteFile(target, outData, 0o600)
 	if err != nil {
 		return xerrors.Errorf("error writing file: %w", err)
 	}

@@ -21,7 +21,8 @@ import (
 
 // Job is a wrapper for a piece of work that should be executed by the job
 // pool.
-// nolint:errname
+//
+//nolint:errname
 type Job struct {
 	// Duration is the time it took the job to run. It's set regardless of
 	// whether the job's finished state was executed, not executed, or errored.

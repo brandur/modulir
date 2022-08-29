@@ -1,7 +1,6 @@
 package mimage
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -27,7 +26,7 @@ func TestResizeImageJPEG(t *testing.T) {
 	d, _ := os.Getwd()
 	t.Logf("pwd = %v\n", d)
 
-	tmpfile, err := ioutil.TempFile("", "resized_image_jpeg")
+	tmpfile, err := os.CreateTemp("", "resized_image_jpeg")
 	assert.NoError(t, err)
 	defer os.Remove(tmpfile.Name())
 
@@ -46,7 +45,7 @@ func TestResizeImageJPEG_NoMozJPEG(t *testing.T) {
 	d, _ := os.Getwd()
 	t.Logf("pwd = %v\n", d)
 
-	tmpfile, err := ioutil.TempFile("", "resized_image_jpeg_no_mozjpeg")
+	tmpfile, err := os.CreateTemp("", "resized_image_jpeg_no_mozjpeg")
 	assert.NoError(t, err)
 	defer os.Remove(tmpfile.Name())
 
@@ -64,7 +63,7 @@ func TestResizeImagePNG(t *testing.T) {
 	d, _ := os.Getwd()
 	t.Logf("pwd = %v\n", d)
 
-	tmpfile, err := ioutil.TempFile("", "resized_image_png")
+	tmpfile, err := os.CreateTemp("", "resized_image_png")
 	assert.NoError(t, err)
 	defer os.Remove(tmpfile.Name())
 
@@ -83,7 +82,7 @@ func TestResizeImagePNG_NoPNGQuant(t *testing.T) {
 	d, _ := os.Getwd()
 	t.Logf("pwd = %v\n", d)
 
-	tmpfile, err := ioutil.TempFile("", "resized_image_png_no_pngquant")
+	tmpfile, err := os.CreateTemp("", "resized_image_png_no_pngquant")
 	assert.NoError(t, err)
 	defer os.Remove(tmpfile.Name())
 

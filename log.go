@@ -130,56 +130,49 @@ type colorizer struct {
 	LogColor bool
 }
 
-// nolint:ireturn
-func (c *colorizer) Blue(arg interface{}) aurora.Value {
+func (c *colorizer) Blue(arg interface{}) aurora.Value { //nolint:ireturn
 	if !c.LogColor {
 		return aurora.Reset(arg)
 	}
 	return aurora.Blue(arg)
 }
 
-// nolint:ireturn
-func (c *colorizer) Bold(arg interface{}) aurora.Value {
+func (c *colorizer) Bold(arg interface{}) aurora.Value { //nolint:ireturn
 	if !c.LogColor {
 		return aurora.Reset(arg)
 	}
 	return aurora.Bold(arg)
 }
 
-// nolint:ireturn
-func (c *colorizer) BrightBlue(arg interface{}) aurora.Value {
+func (c *colorizer) BrightBlue(arg interface{}) aurora.Value { //nolint:ireturn
 	if !c.LogColor {
 		return aurora.Reset(arg)
 	}
 	return aurora.BrightBlue(arg)
 }
 
-// nolint:ireturn
-func (c *colorizer) Cyan(arg interface{}) aurora.Value {
+func (c *colorizer) Cyan(arg interface{}) aurora.Value { //nolint:ireturn
 	if !c.LogColor {
 		return aurora.Reset(arg)
 	}
 	return aurora.Cyan(arg)
 }
 
-// nolint:ireturn
-func (c *colorizer) Green(arg interface{}) aurora.Value {
+func (c *colorizer) Green(arg interface{}) aurora.Value { //nolint:ireturn
 	if !c.LogColor {
 		return aurora.Reset(arg)
 	}
 	return aurora.Green(arg)
 }
 
-// nolint:ireturn
-func (c *colorizer) Red(arg interface{}) aurora.Value {
+func (c *colorizer) Red(arg interface{}) aurora.Value { //nolint:ireturn
 	if !c.LogColor {
 		return aurora.Reset(arg)
 	}
 	return aurora.Red(arg)
 }
 
-// nolint:ireturn
-func (c *colorizer) Yellow(arg interface{}) aurora.Value {
+func (c *colorizer) Yellow(arg interface{}) aurora.Value { //nolint:ireturn
 	if !c.LogColor {
 		return aurora.Reset(arg)
 	}
