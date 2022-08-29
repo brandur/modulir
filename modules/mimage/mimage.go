@@ -101,7 +101,8 @@ type PhotoSize struct {
 // specifications.
 func FetchAndResizeImage(c *modulir.Context,
 	u *url.URL, targetDir, targetSlug string,
-	cropGravity PhotoGravity, photoSizes []PhotoSize) (bool, error) {
+	cropGravity PhotoGravity, photoSizes []PhotoSize,
+) (bool, error) {
 	if TempDir == "" {
 		return false, xerrors.Errorf("mimage.TempDir must be configured for image fetching")
 	}
@@ -135,7 +136,8 @@ func FetchAndResizeImage(c *modulir.Context,
 // specifications.
 func ResizeImage(c *modulir.Context,
 	originalPath, targetDir, targetSlug string,
-	cropGravity PhotoGravity, photoSizes []PhotoSize) (bool, error) {
+	cropGravity PhotoGravity, photoSizes []PhotoSize,
+) (bool, error) {
 	// source without an extension, e.g. `content/photographs/123`
 	sourceNoExt := filepath.Join(targetDir, targetSlug)
 
@@ -164,7 +166,7 @@ func ResizeImage(c *modulir.Context,
 
 	// After everything is done, created a marker file to indicate that the
 	// work doesn't need to be redone.
-	file, err := os.OpenFile(markerPath, os.O_RDONLY|os.O_CREATE, 0o755)
+	file, err := os.OpenFile(markerPath, os.O_RDONLY|os.O_CREATE, 0o755) //nolint:nosnakecase
 	if err != nil {
 		return true, xerrors.Errorf("error creating marker for image '%s': %w", targetSlug, err)
 	}
@@ -206,7 +208,7 @@ func fetchData(c *modulir.Context, u *url.URL, target string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return xerrors.Errorf("unexpected status code fetching '%v': %d",
 			u.String(), resp.StatusCode)
 	}
@@ -261,7 +263,8 @@ func markerExists(c *modulir.Context, sourceNoExt string) (string, bool) {
 }
 
 func resizeImage(_ *modulir.Context,
-	source, target string, width int, cropSettings *PhotoCropSettings, cropGravity PhotoGravity) error {
+	source, target string, width int, cropSettings *PhotoCropSettings, cropGravity PhotoGravity,
+) error {
 	if MagickBin == "" {
 		return xerrors.Errorf("mimage.MagickBin must be configured for image resizing")
 	}

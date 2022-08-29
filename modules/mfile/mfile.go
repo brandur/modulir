@@ -2,7 +2,6 @@ package mfile
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -173,7 +172,7 @@ func MustAbs(path string) string {
 
 // ReadDir reads files in a directory and returns a list of file paths.
 //
-// Unlike ioutil.ReadDir, this function skips hidden, "meta" (i.e. prefixed by
+// Unlike os.ReadDir, this function skips hidden, "meta" (i.e. prefixed by
 // an underscore), and Vim backup (i.e. suffixed with a tilde) files, and
 // returns a list of full paths (easier to plumb into other functions), and
 // sets up a watch on the listed source.
@@ -207,7 +206,8 @@ type ReadDirOptions struct {
 // that we occasionally get a stale cache when a new file is added and don't
 // see it.
 func ReadDirCached(c *modulir.Context, source string,
-	opts *ReadDirOptions) ([]string, error) {
+	opts *ReadDirOptions,
+) ([]string, error) {
 	// Try to use a result from an expiring cache to speed up build loops that
 	// run within close proximity of each other. Listing files is one of the
 	// slower operations throughout the build loop, so this helps speed it up
@@ -236,8 +236,9 @@ func ReadDirCached(c *modulir.Context, source string,
 //
 // Unlike ReadDir, its behavior can be tweaked.
 func ReadDirWithOptions(c *modulir.Context, source string,
-	opts *ReadDirOptions) ([]string, error) {
-	infos, err := ioutil.ReadDir(source)
+	opts *ReadDirOptions,
+) ([]string, error) {
+	infos, err := os.ReadDir(source)
 	if err != nil {
 		return nil, xerrors.Errorf("error reading directory: %w", err)
 	}

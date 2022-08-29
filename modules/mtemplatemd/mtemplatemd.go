@@ -11,7 +11,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"os"
 
 	"github.com/brandur/modulir/modules/mmarkdownext"
 )
@@ -33,7 +33,7 @@ type ftemplateContextKey string
 const IncludeMarkdownDependencyKeys = ftemplateContextKey("IncludeMarkdownDependencyKeys")
 
 func includeMarkdown(ctx context.Context, filename string) template.HTML {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		panic(fmt.Sprintf("error rendering Markdown: %s", err))
 	}

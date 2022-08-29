@@ -3,7 +3,7 @@ package mtoml
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"os"
 
 	"github.com/pelletier/go-toml"
 	"golang.org/x/xerrors"
@@ -13,7 +13,7 @@ import (
 
 // ParseFile is a shortcut from parsing a source file as TOML.
 func ParseFile(c *modulir.Context, source string, v interface{}) error {
-	data, err := ioutil.ReadFile(source)
+	data, err := os.ReadFile(source)
 	if err != nil {
 		return xerrors.Errorf("error reading file: %w", err)
 	}
@@ -30,7 +30,7 @@ func ParseFile(c *modulir.Context, source string, v interface{}) error {
 // ParseFileFrontmatter is a shortcut from parsing a source file's frontmatter
 // (i.e. data at the top between `+++` lines) as TOML.
 func ParseFileFrontmatter(c *modulir.Context, source string, v interface{}) ([]byte, error) {
-	data, err := ioutil.ReadFile(source)
+	data, err := os.ReadFile(source)
 	if err != nil {
 		return nil, xerrors.Errorf("error reading file: %w", err)
 	}

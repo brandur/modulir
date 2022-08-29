@@ -205,8 +205,8 @@ const headerHTMLNoLink = `
 
 // Matches one of the following:
 //
-//   # header
-//   # header (#header-id)
+//	# header
+//	# header (#header-id)
 //
 // For now, only match ## or more so as to remove code comments from
 // matches. We need a better way of doing that though.

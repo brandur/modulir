@@ -4,6 +4,7 @@ linters:
     - cyclop
     - dupl
     - exhaustivestruct
+    - exhaustruct
     - forcetypeassert
     - funlen
     - gochecknoinits

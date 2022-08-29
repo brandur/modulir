@@ -2,7 +2,6 @@ package mtemplatemd
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -12,7 +11,7 @@ import (
 
 func TestIncludeMarkdown(t *testing.T) {
 	content := []byte("**hello, world**")
-	tmpfile, err := ioutil.TempFile("", "markdown_sample.md")
+	tmpfile, err := os.CreateTemp("", "markdown_sample.md")
 	assert.NoError(t, err)
 	defer os.Remove(tmpfile.Name())
 

@@ -1,7 +1,7 @@
 package mtesting
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	assert "github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ func NewContext() *modulir.Context {
 func WriteTempFile(t *testing.T, data []byte) string {
 	t.Helper()
 
-	tempFile, err := ioutil.TempFile("", "modulir")
+	tempFile, err := os.CreateTemp("", "modulir")
 	assert.NoError(t, err)
 
 	_, err = tempFile.Write(data)
