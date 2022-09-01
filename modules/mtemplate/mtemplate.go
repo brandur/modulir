@@ -1,6 +1,7 @@
 package mtemplate
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"math"
@@ -31,6 +32,7 @@ var FuncMap = template.FuncMap{
 	"CollapseParagraphs":           CollapseParagraphs,
 	"DistanceOfTimeInWords":        DistanceOfTimeInWords,
 	"DistanceOfTimeInWordsFromNow": DistanceOfTimeInWordsFromNow,
+	"DownloadedImage":              DownloadedImage,
 	"Figure":                       Figure,
 	"FigureSingle":                 FigureSingle,
 	"FigureSingleWithClass":        FigureSingleWithClass,
@@ -131,6 +133,45 @@ func DistanceOfTimeInWords(to, from time.Time) string {
 // passed between a time and the current moment.
 func DistanceOfTimeInWordsFromNow(to time.Time) string {
 	return DistanceOfTimeInWords(to, time.Now())
+}
+
+type downloadedImageContextKey struct{}
+
+type DownloadedImageContextContainer struct {
+	Images []*DownloadedImageInfo
+}
+
+type DownloadedImageInfo struct {
+	Slug  string
+	URL   *url.URL
+	Width int
+}
+
+func DownloadedImageContext(ctx context.Context) (context.Context, *DownloadedImageContextContainer) {
+	container := &DownloadedImageContextContainer{}
+	return context.WithValue(ctx, downloadedImageContextKey{}, container), container
+}
+
+// DownloadedImage represents an image that's available remotely, and which will
+// be downloaded and stored as the local target slug. This doesn't happen
+// automatically though -- DownloadedImageContext must be called first to set a
+// context container, and from there any downloaded image slugs and URLs can be
+// extracted after all sources are rendered to be sent to mimage for processing.
+func DownloadedImage(ctx context.Context, slug, imageURL string, width int) string {
+	v := ctx.Value(downloadedImageContextKey{})
+	if v == nil {
+		panic("context key not set; DownloadedImageContext must be called")
+	}
+
+	u, err := url.Parse(imageURL)
+	if err != nil {
+		panic(fmt.Sprintf("error parsing image URL %q: %v", imageURL, err))
+	}
+
+	container := v.(*DownloadedImageContextContainer)
+	container.Images = append(container.Images, &DownloadedImageInfo{slug, u, width})
+
+	return slug + strings.ToLower(filepath.Ext(u.Path))
 }
 
 // Figure wraps a number of images into a figure and assigns them a caption as

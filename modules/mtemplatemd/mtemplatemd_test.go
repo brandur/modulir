@@ -21,13 +21,10 @@ func TestIncludeMarkdown(t *testing.T) {
 	err = tmpfile.Close()
 	assert.NoError(t, err)
 
-	dependencies := map[string]struct{}{}
-	ctx := context.WithValue(context.Background(),
-		IncludeMarkdownDependencyKeys, dependencies)
+	ctx, container := Context(context.Background())
 
 	assert.Equal(t, `<p><strong>hello, world</strong></p>`,
-		strings.TrimSpace(string(includeMarkdown(ctx, tmpfile.Name()))))
+		strings.TrimSpace(string(IncludeMarkdown(ctx, tmpfile.Name()))))
 
-	_, ok := dependencies[tmpfile.Name()]
-	assert.True(t, ok)
+	assert.Contains(t, container.Dependencies, tmpfile.Name())
 }

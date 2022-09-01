@@ -1,7 +1,9 @@
 package mtemplate
 
 import (
+	"context"
 	"html/template"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -127,6 +129,56 @@ func TestDistanceOfTimeInWords(t *testing.T) {
 		DistanceOfTimeInWords(to.Add(mustParseDuration("-24h")*(365*3)), to))
 	assert.Equal(t, "10 years",
 		DistanceOfTimeInWords(to.Add(mustParseDuration("-24h")*(365*10)), to))
+}
+
+func TestDownloadedImage(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("SetsContextAndEmitsPath", func(t *testing.T) {
+		ctx, downloadedImageContainer := DownloadedImageContext(ctx)
+
+		assert.Equal(t,
+			"/photographs/belize/01/kukumba-beach-1.jpg",
+			DownloadedImage(
+				ctx,
+				"/photographs/belize/01/kukumba-beach-1",
+				"https://www.dropbox.com/s/6fmtgs00c5xtevg/2W4A1500.JPG?dl=1",
+				1200,
+			),
+		)
+
+		assert.Equal(t,
+			[]*DownloadedImageInfo{
+				{
+					"/photographs/belize/01/kukumba-beach-1",
+					mustURL(t, "https://www.dropbox.com/s/6fmtgs00c5xtevg/2W4A1500.JPG?dl=1"),
+					1200,
+				},
+			},
+			downloadedImageContainer.Images,
+		)
+	})
+
+	t.Run("AlternateExtension", func(t *testing.T) {
+		ctx, _ := DownloadedImageContext(ctx)
+
+		assert.Equal(t,
+			"/photographs/diagram.png",
+			DownloadedImage(
+				ctx,
+				"/photographs/diagram",
+				"https://www.dropbox.com/s/6fmtgs00c5xtevg/2W4A1500.png?dl=1",
+				1200,
+			),
+		)
+	})
+}
+
+func mustURL(t *testing.T, s string) *url.URL {
+	t.Helper()
+	u, err := url.Parse(s)
+	assert.NoError(t, err)
+	return u
 }
 
 func TestFigure(t *testing.T) {
