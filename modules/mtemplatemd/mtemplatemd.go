@@ -19,31 +19,39 @@ import (
 // FuncMap is a set of helper functions to make available in templates for the
 // project.
 var FuncMap = template.FuncMap{
-	"IncludeMarkdown": includeMarkdown,
+	"IncludeMarkdown": IncludeMarkdown,
 }
 
-// Using a custom type for context keys is recommended so that they can't be
-// interfered with outside the package.
-type ftemplateContextKey string
+// ContextKey is the name of the context key to which IncludeMarkdown will add
+// filenames for included dependencies. This is important so that the caller can
+// add them as dependencies to watch for rebuilds.
+type ContextKey struct{}
 
-// IncludeMarkdownDependencyKeys is the name of the context key to which
-// includeMarkdown will add filenames for included dependencies. This is
-// important so that the caller can add them as dependencies to watch for
-// rebuilds.
-const IncludeMarkdownDependencyKeys = ftemplateContextKey("IncludeMarkdownDependencyKeys")
+type ContextContainer struct {
+	Dependencies map[string]struct{}
+}
 
-func includeMarkdown(ctx context.Context, filename string) template.HTML {
+func Context(ctx context.Context) (context.Context, *ContextContainer) {
+	container := &ContextContainer{Dependencies: make(map[string]struct{})}
+	return context.WithValue(ctx, ContextKey{}, container), container
+}
+
+func IncludeMarkdown(ctx context.Context, filename string) template.HTML {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		panic(fmt.Sprintf("error rendering Markdown: %s", err))
 	}
 
-	if v := ctx.Value(IncludeMarkdownDependencyKeys); v != nil {
-		dependencies := v.(map[string]struct{})
-		dependencies[filename] = struct{}{}
+	if v := ctx.Value(ContextKey{}); v != nil {
+		container := v.(*ContextContainer)
+		container.Dependencies[filename] = struct{}{}
 	}
 
-	s, err := mmarkdownext.Render(string(data), nil)
+	s, err := mmarkdownext.Render(string(data), &mmarkdownext.RenderOptions{
+		TemplateData: map[string]interface{}{
+			"Ctx": ctx,
+		},
+	})
 	if err != nil {
 		panic(fmt.Sprintf("error rendering Markdown: %s", err))
 	}
