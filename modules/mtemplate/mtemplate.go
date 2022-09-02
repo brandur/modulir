@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	texttemplate "text/template"
 	"time"
@@ -42,6 +43,7 @@ var FuncMap = template.FuncMap{
 	"ImgSrcAndAlt":                 ImgSrcAndAlt,
 	"ImgSrcAndAltAndClass":         ImgSrcAndAltAndClass,
 	"QueryEscape":                  QueryEscape,
+	"RomanNumeral":                 RomanNumeral,
 	"RoundToString":                RoundToString,
 	"To2X":                         To2X,
 }
@@ -303,6 +305,43 @@ func FormatTime(t *time.Time) string {
 // QueryEscape escapes a URL.
 func QueryEscape(s string) string {
 	return url.QueryEscape(s)
+}
+
+func RomanNumeral(num int) string {
+	const maxRomanNumber int = 3999
+
+	if num > maxRomanNumber || num < 1 {
+		return strconv.Itoa(num)
+	}
+
+	conversions := []struct {
+		value int
+		digit string
+	}{
+		{1000, "M"},
+		{900, "CM"},
+		{500, "D"},
+		{400, "CD"},
+		{100, "C"},
+		{90, "XC"},
+		{50, "L"},
+		{40, "XL"},
+		{10, "X"},
+		{9, "IX"},
+		{5, "V"},
+		{4, "IV"},
+		{1, "I"},
+	}
+
+	var roman strings.Builder
+	for _, conversion := range conversions {
+		for num >= conversion.value {
+			roman.WriteString(conversion.digit)
+			num -= conversion.value
+		}
+	}
+
+	return roman.String()
 }
 
 // RoundToString rounds a float to a presentation-friendly string.

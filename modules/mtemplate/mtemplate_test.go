@@ -299,6 +299,46 @@ func TestQueryEscape(t *testing.T) {
 	assert.Equal(t, "a%2Bb", QueryEscape("a+b"))
 }
 
+func TestRomanNumeral(t *testing.T) {
+	assert.Equal(t, "I", RomanNumeral(1))
+	assert.Equal(t, "II", RomanNumeral(2))
+	assert.Equal(t, "III", RomanNumeral(3))
+	assert.Equal(t, "IV", RomanNumeral(4))
+	assert.Equal(t, "V", RomanNumeral(5))
+	assert.Equal(t, "VI", RomanNumeral(6))
+	assert.Equal(t, "VII", RomanNumeral(7))
+	assert.Equal(t, "VIII", RomanNumeral(8))
+	assert.Equal(t, "IX", RomanNumeral(9))
+	assert.Equal(t, "X", RomanNumeral(10))
+	assert.Equal(t, "XI", RomanNumeral(11))
+	assert.Equal(t, "XII", RomanNumeral(12))
+	assert.Equal(t, "XIII", RomanNumeral(13))
+	assert.Equal(t, "XIV", RomanNumeral(14))
+	assert.Equal(t, "XV", RomanNumeral(15))
+	assert.Equal(t, "XVI", RomanNumeral(16))
+	assert.Equal(t, "XVII", RomanNumeral(17))
+	assert.Equal(t, "XVIII", RomanNumeral(18))
+	assert.Equal(t, "XIX", RomanNumeral(19))
+	assert.Equal(t, "XX", RomanNumeral(20))
+	assert.Equal(t, "XXI", RomanNumeral(21))
+	assert.Equal(t, "XL", RomanNumeral(40))
+	assert.Equal(t, "L", RomanNumeral(50))
+	assert.Equal(t, "LX", RomanNumeral(60))
+	assert.Equal(t, "LXI", RomanNumeral(61))
+	assert.Equal(t, "XC", RomanNumeral(90))
+	assert.Equal(t, "C", RomanNumeral(100))
+	assert.Equal(t, "CD", RomanNumeral(400))
+	assert.Equal(t, "D", RomanNumeral(500))
+	assert.Equal(t, "CM", RomanNumeral(900))
+	assert.Equal(t, "M", RomanNumeral(1000))
+	assert.Equal(t, "MCMXCIX", RomanNumeral(1999))
+	assert.Equal(t, "MMMCMXCIX", RomanNumeral(3999))
+
+	// Out of range
+	assert.Equal(t, "0", RomanNumeral(0))
+	assert.Equal(t, "4000", RomanNumeral(4000))
+}
+
 func TestRoundToString(t *testing.T) {
 	assert.Equal(t, "1.2", RoundToString(1.234))
 	assert.Equal(t, "1.0", RoundToString(1))
