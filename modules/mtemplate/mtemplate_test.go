@@ -295,6 +295,11 @@ func TestImgSrcAndAltAndClass(t *testing.T) {
 	)
 }
 
+func TestMap(t *testing.T) {
+	m := Map(MapVal("New", 456))
+	assert.Contains(t, m, "New")
+}
+
 func TestMapValAdd(t *testing.T) {
 	m := map[string]interface{}{
 		"Preexisting": 123,

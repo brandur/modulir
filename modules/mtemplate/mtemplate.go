@@ -42,6 +42,7 @@ var FuncMap = template.FuncMap{
 	"HTMLSafePassThrough":          HTMLSafePassThrough,
 	"ImgSrcAndAlt":                 ImgSrcAndAlt,
 	"ImgSrcAndAltAndClass":         ImgSrcAndAltAndClass,
+	"Map":                          Map,
 	"MapVal":                       MapVal,
 	"MapValAdd":                    MapValAdd,
 	"QueryEscape":                  QueryEscape,
@@ -307,6 +308,16 @@ func FormatTime(t *time.Time) string {
 type mapVal struct {
 	key string
 	val interface{}
+}
+
+func Map(vals ...*mapVal) map[string]interface{} {
+	m := make(map[string]interface{})
+
+	for _, val := range vals {
+		m[val.key] = val.val
+	}
+
+	return m
 }
 
 // MapVal generates a new map key/value for use with MapValAdd.
