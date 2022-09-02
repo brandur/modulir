@@ -42,6 +42,8 @@ var FuncMap = template.FuncMap{
 	"HTMLSafePassThrough":          HTMLSafePassThrough,
 	"ImgSrcAndAlt":                 ImgSrcAndAlt,
 	"ImgSrcAndAltAndClass":         ImgSrcAndAltAndClass,
+	"MapVal":                       MapVal,
+	"MapValAdd":                    MapValAdd,
 	"QueryEscape":                  QueryEscape,
 	"RomanNumeral":                 RomanNumeral,
 	"RoundToString":                RoundToString,
@@ -300,6 +302,32 @@ func ImgSrcAndAltAndClass(imgSrc, imgAlt, class string) *HTMLImage {
 // format.
 func FormatTime(t *time.Time) string {
 	return toNonBreakingWhitespace(t.Format("January 2, 2006"))
+}
+
+type mapVal struct {
+	key string
+	val interface{}
+}
+
+// MapVal generates a new map key/value for use with MapValAdd.
+func MapVal(key string, val interface{}) *mapVal {
+	return &mapVal{key, val}
+}
+
+// MapValAdd is a convenience helper for adding a new key and value to a shallow
+// copy of the given map and returning it.
+func MapValAdd(m map[string]interface{}, vals ...*mapVal) map[string]interface{} {
+	mCopy := make(map[string]interface{}, len(m))
+
+	for k, v := range m {
+		mCopy[k] = v
+	}
+
+	for _, val := range vals {
+		mCopy[val.key] = val.val
+	}
+
+	return mCopy
 }
 
 // QueryEscape escapes a URL.

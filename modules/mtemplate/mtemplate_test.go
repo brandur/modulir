@@ -295,6 +295,20 @@ func TestImgSrcAndAltAndClass(t *testing.T) {
 	)
 }
 
+func TestMapValAdd(t *testing.T) {
+	m := map[string]interface{}{
+		"Preexisting": 123,
+	}
+
+	newM := MapValAdd(m, MapVal("New", 456))
+
+	assert.Contains(t, newM, "Preexisting")
+	assert.Contains(t, newM, "New")
+
+	assert.Contains(t, m, "Preexisting")
+	assert.NotContains(t, m, "New")
+}
+
 func TestQueryEscape(t *testing.T) {
 	assert.Equal(t, "a%2Bb", QueryEscape("a+b"))
 }
