@@ -321,7 +321,7 @@ func Map(vals ...*mapVal) map[string]interface{} {
 }
 
 // MapVal generates a new map key/value for use with MapValAdd.
-func MapVal(key string, val interface{}) *mapVal {
+func MapVal(key string, val interface{}) *mapVal { //nolint:revive
 	return &mapVal{key, val}
 }
 
