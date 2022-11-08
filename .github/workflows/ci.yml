@@ -1,5 +1,8 @@
 name: modulir CI
 
+env:
+  GO_VERSION: 1.19
+
 on:
   pull_request:
   push:
@@ -11,13 +14,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-
-    env:
-      GO_VERSION: 1.18
-
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
 
@@ -38,8 +37,6 @@ jobs:
           # and it'll lead to hours of confusion. You can use a `~`, but I've
           # expanded HOME so that finding things is easier.
           path: |
-            /home/runner/go/bin/
-            /home/runner/go/pkg/mod/
             /home/runner/imagemagick/
             /opt/mozjpeg/
           key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-cache-dependencies-v2
@@ -66,7 +63,7 @@ jobs:
         run: sudo apt-get install pngquant
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Debug
         run: |
@@ -97,11 +94,16 @@ jobs:
     timeout-minutes: 3
 
     steps:
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: "Check: golangci-lint"
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           version: v1.49
 
