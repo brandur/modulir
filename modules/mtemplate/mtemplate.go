@@ -303,18 +303,18 @@ func ImgSrcAndAltAndClass(imgSrc, imgAlt, class string) *HTMLImage {
 }
 
 // FormatTime formats time according to the given format string.
-func FormatTime(t *time.Time, format string) string {
+func FormatTime(t time.Time, format string) string {
 	return toNonBreakingWhitespace(t.Format(format))
 }
 
 // FormatTime formats time according to the given format string.
-func FormatTimeRFC3339UTC(t *time.Time) string {
+func FormatTimeRFC3339UTC(t time.Time) string {
 	return toNonBreakingWhitespace(t.UTC().Format(time.RFC3339))
 }
 
 // FormatTimeSimpleDate formats time according to a relatively straightforward
 // time format.
-func FormatTimeSimpleDate(t *time.Time) string {
+func FormatTimeSimpleDate(t time.Time) string {
 	return toNonBreakingWhitespace(t.Format("January 2, 2006"))
 }
 
@@ -401,7 +401,7 @@ func RoundToString(f float64) string {
 	return fmt.Sprintf("%.1f", f)
 }
 
-func TimeIn(t *time.Time, locationName string) time.Time {
+func TimeIn(t time.Time, locationName string) time.Time {
 	location, err := time.LoadLocation(locationName)
 	if err != nil {
 		panic(err)
