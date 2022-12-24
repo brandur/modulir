@@ -371,6 +371,11 @@ func TestRoundToString(t *testing.T) {
 	assert.Equal(t, "1.0", RoundToString(1))
 }
 
+func TestTimeIn(t *testing.T) {
+	tIn := TimeIn(&testTime, "America/Los_Angeles")
+	assert.Equal(t, "America/Los_Angeles", tIn.Location().String())
+}
+
 func TestTo2X(t *testing.T) {
 	assert.Equal(t, template.HTML("/path/image@2x.jpg"), To2X("/path/image.jpg"))
 	assert.Equal(t, template.HTML("/path/image@2x.png"), To2X("/path/image.png"))

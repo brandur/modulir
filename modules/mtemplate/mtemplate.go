@@ -398,6 +398,14 @@ func RoundToString(f float64) string {
 	return fmt.Sprintf("%.1f", f)
 }
 
+func TimeIn(t *time.Time, locationName string) time.Time {
+	location, err := time.LoadLocation(locationName)
+	if err != nil {
+		panic(err)
+	}
+	return t.In(location)
+}
+
 // To2X takes a 1x (standad resolution) image path and changes it to a 2x path
 // by putting `@2x` into its name right before its extension.
 func To2X(imagePath string) template.HTML {
