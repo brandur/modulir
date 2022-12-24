@@ -299,9 +299,19 @@ func ImgSrcAndAltAndClass(imgSrc, imgAlt, class string) *HTMLImage {
 	return &HTMLImage{imgSrc, imgAlt, class}
 }
 
-// FormatTime formats time according to a relatively straightforward time
-// format.
-func FormatTime(t *time.Time) string {
+// FormatTime formats time according to the given format string.
+func FormatTime(t *time.Time, format string) string {
+	return toNonBreakingWhitespace(t.Format(format))
+}
+
+// FormatTime formats time according to the given format string.
+func FormatTimeRFC3339UTC(t *time.Time) string {
+	return toNonBreakingWhitespace(t.UTC().Format(time.RFC3339))
+}
+
+// FormatTimeSimpleDate formats time according to a relatively straightforward
+// time format.
+func FormatTimeSimpleDate(t *time.Time) string {
 	return toNonBreakingWhitespace(t.Format("January 2, 2006"))
 }
 

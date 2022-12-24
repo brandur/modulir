@@ -217,7 +217,15 @@ func TestFigure(t *testing.T) {
 }
 
 func TestFormatTime(t *testing.T) {
-	assert.Equal(t, "July 3, 2016", FormatTime(&testTime))
+	assert.Equal(t, "July 3, 2016 12:34", FormatTime(&testTime, "January 2, 2006 15:04"))
+}
+
+func TestFormatTimeRFC3339UTC(t *testing.T) {
+	assert.Equal(t, "2016-07-03T12:34:00Z", FormatTimeRFC3339UTC(&testTime))
+}
+
+func TestFormatTimeSimpleDate(t *testing.T) {
+	assert.Equal(t, "July 3, 2016", FormatTimeSimpleDate(&testTime))
 }
 
 func TestHTMLImageRender(t *testing.T) {
