@@ -38,6 +38,8 @@ var FuncMap = template.FuncMap{
 	"FigureSingle":                 FigureSingle,
 	"FigureSingleWithClass":        FigureSingleWithClass,
 	"FormatTime":                   FormatTime,
+	"FormatTimeRFC3339UTC":         FormatTimeRFC3339UTC,
+	"FormatTimeSimpleDate":         FormatTimeSimpleDate,
 	"HTMLRender":                   HTMLRender,
 	"HTMLSafePassThrough":          HTMLSafePassThrough,
 	"ImgSrcAndAlt":                 ImgSrcAndAlt,
@@ -48,6 +50,7 @@ var FuncMap = template.FuncMap{
 	"QueryEscape":                  QueryEscape,
 	"RomanNumeral":                 RomanNumeral,
 	"RoundToString":                RoundToString,
+	"TimeIn":                       TimeIn,
 	"To2X":                         To2X,
 }
 
