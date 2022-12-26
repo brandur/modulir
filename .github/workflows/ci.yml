@@ -3,6 +3,12 @@ name: modulir CI
 env:
   GO_VERSION: 1.19
 
+  # Paths for various manually installed utilities. Don't try to use $HOME
+  # because GitHub Actions won't support it.
+  MAGICK_BIN: /home/runner/imagemagick/bin/magick
+  MOZJPEG_BIN: /opt/mozjpeg/bin/cjpeg
+  PNGQUANT_BIN: /usr/bin/pngquant
+
 on:
   pull_request:
   push:
@@ -20,27 +26,6 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      # Used to force dependencies to re-cache once a day so that we don't run
-      # into any weird cache invalidation problems, so to make sure that
-      # dependency fetches keep working.
-      - name: Get date
-        id: get-date
-        run: |
-          echo "::set-output name=date::$(/bin/date -u "+%Y-%m-%d")"
-        shell: bash
-
-      - name: Cache dependencies
-        id: cache-dependencies
-        uses: actions/cache@v2
-        with:
-          # Don't try to use variables in these paths. They don't seem to work
-          # and it'll lead to hours of confusion. You can use a `~`, but I've
-          # expanded HOME so that finding things is easier.
-          path: |
-            /home/runner/imagemagick/
-            /opt/mozjpeg/
-          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-cache-dependencies-v2
-
       # The copy of ImageMagick we could get from apt-get is ancient and
       # doesn't handle niceties like `.heic` files, so here we get the binary
       # release directly. When Ubuntu is upgraded at some point in the
@@ -48,16 +33,16 @@ jobs:
       - name: Install ImageMagick
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
         run: |
-          mkdir -p $HOME/imagemagick/bin/
-          curl -L -o $HOME/imagemagick/bin/magick https://imagemagick.org/archive/binaries/magick
-          chmod +x $HOME/imagemagick/bin/magick
+          mkdir -p $(dirname "${{ env.MAGICK_BIN }}")
+          curl --compressed -L -o "${{ env.MAGICK_BIN }}" https://github.com/brandur/imagemagick-builder/releases/download/master/magick
+          chmod +x "${{ env.MAGICK_BIN }}"
 
       # Uses an artifact built by: https://github.com/brandur/mozjpeg-builder
       - name: Install MozJPEG
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
         run: |
-          curl -O https://mozjpeg-brandur.s3.us-east-1.amazonaws.com/mozjpeg_master_amd64.deb
-          sudo dpkg -i mozjpeg_master_amd64.deb
+          curl --compressed -L -O https://github.com/brandur/mozjpeg-builder/releases/download/master/mozjpeg_amd64.deb
+          sudo dpkg -i mozjpeg_amd64.deb
 
       - name: Install PNGQuant
         run: sudo apt-get install pngquant
@@ -78,10 +63,6 @@ jobs:
 
       - name: "Go: Test"
         run: make test
-        env:
-          MAGICK_BIN: /home/runner/imagemagick/bin/magick
-          MOZJPEG_BIN: /opt/mozjpeg/bin/cjpeg
-          PNGQUANT_BIN: /usr/bin/pngquant
 
       - name: "Go: Vet"
         run: make vet
