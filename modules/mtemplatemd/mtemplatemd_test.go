@@ -26,5 +26,6 @@ func TestIncludeMarkdown(t *testing.T) {
 	assert.Equal(t, `<p><strong>hello, world</strong></p>`,
 		strings.TrimSpace(string(IncludeMarkdown(ctx, tmpfile.Name()))))
 
+	assert.Contains(t, container.dependenciesMap, tmpfile.Name())
 	assert.Contains(t, container.Dependencies, tmpfile.Name())
 }

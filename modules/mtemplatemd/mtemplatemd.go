@@ -28,11 +28,12 @@ var FuncMap = template.FuncMap{
 type ContextKey struct{}
 
 type ContextContainer struct {
-	Dependencies map[string]struct{}
+	Dependencies    []string
+	dependenciesMap map[string]struct{}
 }
 
 func Context(ctx context.Context) (context.Context, *ContextContainer) {
-	container := &ContextContainer{Dependencies: make(map[string]struct{})}
+	container := &ContextContainer{dependenciesMap: make(map[string]struct{})}
 	return context.WithValue(ctx, ContextKey{}, container), container
 }
 
@@ -44,7 +45,10 @@ func IncludeMarkdown(ctx context.Context, filename string) template.HTML {
 
 	if v := ctx.Value(ContextKey{}); v != nil {
 		container := v.(*ContextContainer)
-		container.Dependencies[filename] = struct{}{}
+		if _, ok := container.dependenciesMap[filename]; !ok {
+			container.Dependencies = append(container.Dependencies, filename)
+			container.dependenciesMap[filename] = struct{}{}
+		}
 	}
 
 	s, err := mmarkdownext.Render(string(data), &mmarkdownext.RenderOptions{
