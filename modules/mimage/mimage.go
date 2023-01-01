@@ -204,7 +204,7 @@ func fetchData(c *modulir.Context, u *url.URL, target string) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return xerrors.Errorf("error fetching: %v", u.String())
+		return xerrors.Errorf("error fetching %q: %w", u.String(), err)
 	}
 	defer resp.Body.Close()
 
