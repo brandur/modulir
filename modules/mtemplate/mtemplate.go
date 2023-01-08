@@ -153,6 +153,18 @@ type DownloadedImageInfo struct {
 	Slug  string
 	URL   *url.URL
 	Width int
+
+	// Internal
+	ext string `toml:"-"`
+}
+
+func (p *DownloadedImageInfo) OriginalExt() string {
+	if p.ext != "" {
+		return p.ext
+	}
+
+	p.ext = strings.ToLower(filepath.Ext(p.URL.Path))
+	return p.ext
 }
 
 func DownloadedImageContext(ctx context.Context) (context.Context, *DownloadedImageContextContainer) {
@@ -177,7 +189,7 @@ func DownloadedImage(ctx context.Context, slug, imageURL string, width int) stri
 	}
 
 	container := v.(*DownloadedImageContextContainer)
-	container.Images = append(container.Images, &DownloadedImageInfo{slug, u, width})
+	container.Images = append(container.Images, &DownloadedImageInfo{slug, u, width, ""})
 
 	return slug + strings.ToLower(filepath.Ext(u.Path))
 }

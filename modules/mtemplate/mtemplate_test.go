@@ -153,6 +153,7 @@ func TestDownloadedImage(t *testing.T) {
 					"/photographs/belize/01/kukumba-beach-1",
 					mustURL(t, "https://www.dropbox.com/s/6fmtgs00c5xtevg/2W4A1500.JPG?dl=1"),
 					1200,
+					"",
 				},
 			},
 			downloadedImageContainer.Images,

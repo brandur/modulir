@@ -100,7 +100,7 @@ type PhotoSize struct {
 // FetchAndResizeImage fetches an image from a URL and resizes it according to
 // specifications.
 func FetchAndResizeImage(c *modulir.Context,
-	u *url.URL, targetDir, targetSlug string,
+	u *url.URL, targetDir, targetSlug, targetExt string,
 	cropGravity PhotoGravity, photoSizes []PhotoSize,
 ) (bool, error) {
 	if TempDir == "" {
@@ -129,13 +129,13 @@ func FetchAndResizeImage(c *modulir.Context,
 		return true, xerrors.Errorf("error fetching image '%s': %w", targetSlug, err)
 	}
 
-	return ResizeImage(c, originalPath, targetDir, targetSlug, cropGravity, photoSizes)
+	return ResizeImage(c, originalPath, targetDir, targetSlug, targetExt, cropGravity, photoSizes)
 }
 
 // ResizeImage fetches an image from a URL and resizes it according to
 // specifications.
 func ResizeImage(c *modulir.Context,
-	originalPath, targetDir, targetSlug string,
+	originalPath, targetDir, targetSlug, targetExt string,
 	cropGravity PhotoGravity, photoSizes []PhotoSize,
 ) (bool, error) {
 	// source without an extension, e.g. `content/photographs/123`
@@ -154,11 +154,13 @@ func ResizeImage(c *modulir.Context,
 		return true, err
 	}
 
-	ext := strings.ToLower(filepath.Ext(originalPath))
+	if targetExt == "" {
+		targetExt = strings.ToLower(filepath.Ext(originalPath))
+	}
 
 	for _, size := range photoSizes {
 		err := resizeImage(c, originalPath,
-			sourceNoExt+size.Suffix+ext, size.Width, size.CropSettings, cropGravity)
+			sourceNoExt+size.Suffix+targetExt, size.Width, size.CropSettings, cropGravity)
 		if err != nil {
 			return true, xerrors.Errorf("error resizing image '%s': %w", targetSlug, err)
 		}
@@ -204,7 +206,7 @@ func fetchData(c *modulir.Context, u *url.URL, target string) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return xerrors.Errorf("error fetching %q: %w", u.String(), err)
+		return xerrors.Errorf("error fetching: %v", u.String())
 	}
 	defer resp.Body.Close()
 
