@@ -5,7 +5,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/pelletier/go-toml"
+	"github.com/pelletier/go-toml/v2"
 	"golang.org/x/xerrors"
 
 	"github.com/brandur/modulir"
