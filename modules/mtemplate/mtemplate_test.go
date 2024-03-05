@@ -215,6 +215,17 @@ func TestFigure(t *testing.T) {
 			)),
 		)
 	})
+	t.Run("NoCaption", func(t *testing.T) {
+		assert.Equal(
+			t,
+			strings.TrimSpace(`
+<figure>
+    <img loading="lazy" src="src" srcset="src@2x 2x, src 1x">
+</figure>
+			`),
+			string(Figure("", &HTMLImage{Src: "src"})),
+		)
+	})
 }
 
 func TestFormatTime(t *testing.T) {

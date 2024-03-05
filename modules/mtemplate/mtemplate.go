@@ -205,9 +205,11 @@ func Figure(figCaption string, imgs ...*HTMLImage) template.HTML {
 		out += "    " + string(img.render()) + "\n"
 	}
 
-	out += fmt.Sprintf(`    <figcaption>%s</figcaption>
-</figure>`,
-		figCaption)
+	if figCaption != "" {
+		out += fmt.Sprintf(`    <figcaption>%s</figcaption>`+"\n", figCaption)
+	}
+
+	out += "</figure>"
 
 	return template.HTML(strings.TrimSpace(out))
 }
@@ -272,10 +274,13 @@ func (img *HTMLImage) render() template.HTML {
 	element := htmlElementRenderer{
 		Name: "img",
 		Attrs: map[string]string{
-			"alt":     img.Alt,
 			"loading": "lazy",
 			"src":     img.Src,
 		},
+	}
+
+	if img.Alt != "" {
+		element.Attrs["alt"] = img.Alt
 	}
 
 	if ext := filepath.Ext(img.Src); ext != ".svg" {

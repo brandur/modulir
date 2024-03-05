@@ -138,7 +138,6 @@ func ResizeImage(c *modulir.Context,
 	originalPath, targetDir, targetSlug, targetExt string,
 	cropGravity PhotoGravity, photoSizes []PhotoSize,
 ) (bool, error) {
-
 	// source without an extension, e.g. `content/photographs/123`
 	sourceNoExt := filepath.Join(targetDir, targetSlug)
 
