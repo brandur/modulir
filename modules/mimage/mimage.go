@@ -275,15 +275,15 @@ func resizeImage(_ *modulir.Context,
 		return xerrors.Errorf("mimage.MagickBin must be configured for image resizing")
 	}
 
-	out, err := exec.Command(
-		MagickBin,
-		"convert",
+	commandArgs := []string{
 		source,
 		"-auto-orient",
 		"-format",
 		"%[w] %[h]",
 		"info:",
-	).CombinedOutput()
+	}
+
+	out, err := exec.Command(MagickBin, commandArgs...).CombinedOutput()
 	if err != nil {
 		return xerrors.Errorf("error running convert info command (out: '%s'): %w",
 			string(out), err)
