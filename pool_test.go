@@ -54,9 +54,9 @@ func TestWithLargeNonWork(t *testing.T) {
 	numJobs := 300
 	numRounds := 50
 
-	for i := 0; i < numRounds; i++ {
+	for range numRounds {
 		p.StartRound(0)
-		for j := 0; j < numJobs; j++ {
+		for range numJobs {
 			p.Jobs <- NewJob("job", func() (bool, error) { return false, nil })
 		}
 		p.Wait()

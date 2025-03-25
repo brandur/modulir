@@ -1,7 +1,6 @@
 package mtemplatemd
 
 import (
-	"context"
 	"os"
 	"strings"
 	"testing"
@@ -21,7 +20,7 @@ func TestIncludeMarkdown(t *testing.T) {
 	err = tmpfile.Close()
 	assert.NoError(t, err)
 
-	ctx, container := Context(context.Background())
+	ctx, container := Context(t.Context())
 
 	assert.Equal(t, `<p><strong>hello, world</strong></p>`,
 		strings.TrimSpace(string(IncludeMarkdown(ctx, tmpfile.Name()))))

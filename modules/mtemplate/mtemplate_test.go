@@ -1,7 +1,6 @@
 package mtemplate
 
 import (
-	"context"
 	"html/template"
 	"net/url"
 	"strings"
@@ -132,7 +131,7 @@ func TestDistanceOfTimeInWords(t *testing.T) {
 }
 
 func TestDownloadedImage(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("SetsContextAndEmitsPath", func(t *testing.T) {
 		ctx, downloadedImageContainer := DownloadedImageContext(ctx)
