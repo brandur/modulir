@@ -172,7 +172,7 @@ func ResizeImage(c *modulir.Context,
 
 	// After everything is done, created a marker file to indicate that the
 	// work doesn't need to be redone.
-	file, err := os.OpenFile(markerPath, os.O_RDONLY|os.O_CREATE, 0o755) //nolint:nosnakecase
+	file, err := os.OpenFile(markerPath, os.O_RDONLY|os.O_CREATE, 0o755)
 	if err != nil {
 		return true, xerrors.Errorf("error creating marker for image '%s': %w", targetSlug, err)
 	}

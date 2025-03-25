@@ -21,7 +21,7 @@ import (
 
 // Render is a shortcut for rendering some source data to Markdown via Black
 // Friday.
-func Render(c *modulir.Context, data []byte) []byte {
+func Render(_ *modulir.Context, data []byte) []byte {
 	return blackfriday.Run(data)
 }
 

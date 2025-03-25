@@ -20,7 +20,7 @@ func NewContext() *modulir.Context {
 func WriteTempFile(t *testing.T, data []byte) string {
 	t.Helper()
 
-	tempFile, err := os.CreateTemp("", "modulir")
+	tempFile, err := os.CreateTemp(t.TempDir(), "modulir")
 	assert.NoError(t, err)
 
 	_, err = tempFile.Write(data)

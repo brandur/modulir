@@ -13,9 +13,9 @@ func TestEmptyPool(t *testing.T) {
 	p.StartRound(0)
 	p.Wait()
 
-	assert.Equal(t, 0, len(p.JobsAll))
-	assert.Equal(t, 0, len(p.JobsErrored))
-	assert.Equal(t, 0, len(p.JobsExecuted))
+	assert.Empty(t, p.JobsAll)
+	assert.Empty(t, p.JobsErrored)
+	assert.Empty(t, p.JobsExecuted)
 	assert.Equal(t, []error(nil), p.JobErrors())
 }
 
@@ -32,18 +32,18 @@ func TestWithWork(t *testing.T) {
 	p.Wait()
 
 	// Check state on the pool
-	assert.Equal(t, 3, len(p.JobsAll))
-	assert.Equal(t, 0, len(p.JobsErrored))
-	assert.Equal(t, 2, len(p.JobsExecuted)) // Number of `return true` above
+	assert.Len(t, p.JobsAll, 3)
+	assert.Empty(t, p.JobsErrored)
+	assert.Len(t, p.JobsExecuted, 2) // Number of `return true` above
 	assert.Equal(t, []error(nil), p.JobErrors())
 
 	// Check state on individual jobs
-	assert.Equal(t, true, j0.Executed)
-	assert.Equal(t, nil, j0.Err)
-	assert.Equal(t, true, j1.Executed)
-	assert.Equal(t, nil, j1.Err)
-	assert.Equal(t, false, j2.Executed)
-	assert.Equal(t, nil, j2.Err)
+	assert.True(t, j0.Executed)
+	assert.NoError(t, j0.Err)
+	assert.True(t, j1.Executed)
+	assert.NoError(t, j1.Err)
+	assert.False(t, j2.Executed)
+	assert.NoError(t, j2.Err)
 }
 
 // Tests the pool with lots of fast jobs that do nothing across multiple
@@ -62,9 +62,9 @@ func TestWithLargeNonWork(t *testing.T) {
 		p.Wait()
 
 		// Check state on the pool
-		assert.Equal(t, numJobs, len(p.JobsAll))
-		assert.Equal(t, 0, len(p.JobsErrored))
-		assert.Equal(t, 0, len(p.JobsExecuted)) // Number of `return true` above
+		assert.Len(t, p.JobsAll, numJobs)
+		assert.Empty(t, p.JobsErrored)
+		assert.Empty(t, p.JobsExecuted) // Number of `return true` above
 		assert.Equal(t, []error(nil), p.JobErrors())
 	}
 }
@@ -82,17 +82,17 @@ func TestWithError(t *testing.T) {
 	p.Wait()
 
 	// Check state on the pool
-	assert.Equal(t, 3, len(p.JobsAll))
-	assert.Equal(t, 1, len(p.JobsErrored))
-	assert.Equal(t, 3, len(p.JobsExecuted)) // Number of `return true` above
+	assert.Len(t, p.JobsAll, 3)
+	assert.Len(t, p.JobsErrored, 1)
+	assert.Len(t, p.JobsExecuted, 3) // Number of `return true` above
 	assert.Equal(t, []string{"error"}, errorStrings(p.JobErrors()))
 
 	// Check state on individual jobs
-	assert.Equal(t, true, j0.Executed)
-	assert.Equal(t, nil, j0.Err)
-	assert.Equal(t, true, j1.Executed)
-	assert.Equal(t, nil, j1.Err)
-	assert.Equal(t, true, j2.Executed)
+	assert.True(t, j0.Executed)
+	assert.NoError(t, j0.Err)
+	assert.True(t, j1.Executed)
+	assert.NoError(t, j1.Err)
+	assert.True(t, j2.Executed)
 	assert.Equal(t, "error", j2.Err.Error())
 }
 
@@ -113,11 +113,11 @@ func TestWorkJob(t *testing.T) {
 
 	assert.True(t, executed)
 
-	assert.Equal(t, 0, len(p.JobsErrored))
-	assert.Equal(t, 1, len(p.JobsExecuted))
+	assert.Empty(t, p.JobsErrored)
+	assert.Len(t, p.JobsExecuted, 1)
 
-	assert.Equal(t, true, j.Executed)
-	assert.Equal(t, nil, j.Err)
+	assert.True(t, j.Executed)
+	assert.NoError(t, j.Err)
 }
 
 func TestWorkJob_Error(t *testing.T) {
@@ -137,11 +137,11 @@ func TestWorkJob_Error(t *testing.T) {
 
 	assert.True(t, executed)
 
-	assert.Equal(t, 1, len(p.JobsErrored))
-	assert.Equal(t, 1, len(p.JobsExecuted))
+	assert.Len(t, p.JobsErrored, 1)
+	assert.Len(t, p.JobsExecuted, 1)
 	assert.Equal(t, []string{"error"}, errorStrings(p.JobErrors()))
 
-	assert.Equal(t, true, j.Executed)
+	assert.True(t, j.Executed)
 	assert.Equal(t, "error", j.Err.Error())
 }
 
@@ -162,13 +162,13 @@ func TestWorkJob_Panic(t *testing.T) {
 
 	assert.True(t, executed)
 
-	assert.Equal(t, 1, len(p.JobsErrored))
-	assert.Equal(t, 0, len(p.JobsExecuted))
+	assert.Len(t, p.JobsErrored, 1)
+	assert.Empty(t, p.JobsExecuted)
 
 	err := p.JobErrors()[0]
 	assert.Equal(t, "job panicked: error", err.Error())
 
-	assert.Equal(t, false, j.Executed)
+	assert.False(t, j.Executed)
 	assert.Equal(t, "job panicked: error", j.Err.Error())
 }
 
@@ -189,11 +189,11 @@ func TestWorkJob_PanicString(t *testing.T) {
 
 	assert.True(t, executed)
 
-	assert.Equal(t, 1, len(p.JobsErrored))
-	assert.Equal(t, 0, len(p.JobsExecuted))
+	assert.Len(t, p.JobsErrored, 1)
+	assert.Empty(t, p.JobsExecuted)
 	assert.Equal(t, []string{"job panicked: error"}, errorStrings(p.JobErrors()))
 
-	assert.Equal(t, false, j.Executed)
+	assert.False(t, j.Executed)
 	assert.Equal(t, "job panicked: error", j.Err.Error())
 }
 

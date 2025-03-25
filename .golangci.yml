@@ -1,48 +1,64 @@
+version: "2"
+
 linters:
+  default: all
+
   disable:
     # obnoxious
     - cyclop
+    - depguard
     - dupl
-    - exhaustivestruct
     - exhaustruct
     - forcetypeassert
     - funlen
-    - gochecknoinits
     - gochecknoglobals
+    - gochecknoinits
     - gocognit
     - gocyclo
     - godox
-    - gomnd
+    - mnd
     - nlreturn
     - paralleltest
     - testpackage
-    - wsl
     - varnamelen
+    - wsl
 
-    # deprecated
-    - golint
-    - interfacer
-    - maligned
-    - scopelint
-  enable-all: true
+  settings:
+    forbidigo:
+      forbid:
+        - pattern: ^errors\.Wrap$
+        - pattern: ^errors\.Wrapf$
+        - pattern: ^fmt\.Errorf$
 
-linters-settings:
-  forbidigo:
-    forbid:
-      - '^errors\.Wrap$'
-      - '^errors\.Wrapf$'
-      - '^fmt\.Errorf$'
-  gci:
-    local-prefixes: github.com/brandur
+    gocritic:
+      disabled-checks:
+        - commentFormatting
 
-  gocritic:
-    disabled-checks:
-      - commentFormatting
+    gosec:
+      excludes:
+        - G203
 
-  gosec:
-    excludes:
-      - G203
+    wrapcheck:
+      ignore-package-globs:
+        - github.com/brandur/*
 
-  wrapcheck:
-    ignorePackageGlobs:
-      - github.com/brandur/*
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - Standard
+        - Default
+        - Prefix(github.com/brandur)

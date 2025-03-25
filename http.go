@@ -97,7 +97,7 @@ var websocketJSTemplate = template.Must(template.New("websocket.js").Parse(webso
 // Part of the Gorilla websocket infrastructure that upgrades HTTP connections
 // to websocket connections when we see an incoming websocket request.
 var websocketUpgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
+	CheckOrigin: func(*http.Request) bool {
 		// Thought about doing localhost only, but it may cause trouble for
 		// something eventually. If end user can connect to the web page,
 		// assume they're also safe for websockets.
@@ -124,7 +124,7 @@ func getWebsocketHandler(c *Context, buildComplete *sync.Cond) func(w http.Respo
 }
 
 func getWebsocketJSHandler(c *Context) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/javascript")
 		err := websocketJSTemplate.Execute(w, map[string]interface{}{
 			"Port": c.Port,

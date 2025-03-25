@@ -130,7 +130,7 @@ func collapseHTML(html string) string {
 
 var codeRE = regexp.MustCompile(`<code class="(\w+)">`)
 
-func transformCodeWithLanguagePrefix(source string, options *RenderOptions) (string, error) {
+func transformCodeWithLanguagePrefix(source string, _ *RenderOptions) (string, error) {
 	return codeRE.ReplaceAllString(source, `<code class="language-$1">`), nil
 }
 
@@ -143,7 +143,7 @@ const figureHTML = `
 
 var figureRE = regexp.MustCompile(`!fig src="(.*)" caption="(.*)"`)
 
-func transformFigures(source string, options *RenderOptions) (string, error) {
+func transformFigures(source string, _ *RenderOptions) (string, error) {
 	return figureRE.ReplaceAllStringFunc(source, func(figure string) string {
 		matches := figureRE.FindStringSubmatch(figure)
 		src := matches[1]
@@ -390,13 +390,9 @@ func transformImagesAndLinksToAbsoluteURLs(source string, options *RenderOptions
 		return source, nil
 	}
 
-	source = relativeImageRE.ReplaceAllStringFunc(source, func(img string) string {
-		return `<img src="` + options.AbsoluteURL + `/`
-	})
+	source = relativeImageRE.ReplaceAllString(source, `<img src="`+options.AbsoluteURL+`/`)
 
-	source = relativeLinkRE.ReplaceAllStringFunc(source, func(img string) string {
-		return `<a href="` + options.AbsoluteURL + `/`
-	})
+	source = relativeLinkRE.ReplaceAllString(source, `<a href="`+options.AbsoluteURL+`/`)
 
 	return source, nil
 }
@@ -409,6 +405,6 @@ func transformLinksToNoFollow(source string, options *RenderOptions) (string, er
 	}
 
 	return absoluteLinkRE.ReplaceAllStringFunc(source, func(link string) string {
-		return fmt.Sprintf(`%s rel="nofollow"`, link)
+		return link + " rel=\"nofollow\""
 	}), nil
 }
