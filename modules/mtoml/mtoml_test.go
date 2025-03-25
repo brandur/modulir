@@ -38,7 +38,7 @@ other`))
 		var v testStruct
 		content, err := ParseFileFrontmatter(c, path, &v)
 		assert.NoError(t, err)
-		assert.Equal(t, "", v.Foo)
+		assert.Empty(t, v.Foo)
 		assert.Equal(t, []byte("other"), content)
 	}
 

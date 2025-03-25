@@ -70,16 +70,16 @@ func TestCompareKeys(t *testing.T) {
 
 func TestShouldRebuild(t *testing.T) {
 	// Most things signal a rebuild
-	assert.Equal(t, true, shouldRebuild("a/path", fsnotify.Create))
-	assert.Equal(t, true, shouldRebuild("a/path", fsnotify.Remove))
-	assert.Equal(t, true, shouldRebuild("a/path", fsnotify.Write))
+	assert.True(t, shouldRebuild("a/path", fsnotify.Create))
+	assert.True(t, shouldRebuild("a/path", fsnotify.Remove))
+	assert.True(t, shouldRebuild("a/path", fsnotify.Write))
 
 	// With just a few special cases that don't
-	assert.Equal(t, false, shouldRebuild("a/path", fsnotify.Chmod))
-	assert.Equal(t, false, shouldRebuild("a/path", fsnotify.Rename))
-	assert.Equal(t, false, shouldRebuild("a/.DS_Store", fsnotify.Create))
-	assert.Equal(t, false, shouldRebuild("a/4913", fsnotify.Create))
-	assert.Equal(t, false, shouldRebuild("a/path~", fsnotify.Create))
+	assert.False(t, shouldRebuild("a/path", fsnotify.Chmod))
+	assert.False(t, shouldRebuild("a/path", fsnotify.Rename))
+	assert.False(t, shouldRebuild("a/.DS_Store", fsnotify.Create))
+	assert.False(t, shouldRebuild("a/4913", fsnotify.Create))
+	assert.False(t, shouldRebuild("a/path~", fsnotify.Create))
 }
 
 func TestWatchChanges(t *testing.T) {

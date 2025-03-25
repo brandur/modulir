@@ -197,7 +197,7 @@ func TestRenderFromHTML_Basic(t *testing.T) {
 func TestRenderFromHTML_Empty(t *testing.T) {
 	rendered, err := RenderFromHTML("hello")
 	assert.NoError(t, err)
-	assert.Equal(t, "", rendered)
+	assert.Empty(t, rendered)
 }
 
 func TestRenderFromHTML_OtherAttrs(t *testing.T) {

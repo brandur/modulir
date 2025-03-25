@@ -11,7 +11,7 @@ import (
 
 func TestIncludeMarkdown(t *testing.T) {
 	content := []byte("**hello, world**")
-	tmpfile, err := os.CreateTemp("", "markdown_sample.md")
+	tmpfile, err := os.CreateTemp(t.TempDir(), "markdown_sample.md")
 	assert.NoError(t, err)
 	defer os.Remove(tmpfile.Name())
 

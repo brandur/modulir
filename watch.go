@@ -63,11 +63,7 @@ func watchChanges(c *Context, watchEvents chan fsnotify.Event, watchErrors chan 
 			//
 			// The overwhelmingly common case will be few files being changed,
 			// and therefore the inner for almost never needs to loop.
-			for {
-				if len(changedSources) < 1 {
-					break
-				}
-
+			for len(changedSources) >= 1 {
 				// If the detect changes are identical to the last set of
 				// changes we just processed and we're within a certain quiesce
 				// time, *don't* trigger another rebuild and just go back to

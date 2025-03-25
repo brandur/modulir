@@ -105,32 +105,32 @@ const (
 func DistanceOfTimeInWords(to, from time.Time) string {
 	d := from.Sub(to)
 
-	min := int(round(d.Minutes()))
+	minutes := int(round(d.Minutes()))
 
 	switch {
-	case min == 0:
+	case minutes == 0:
 		return "less than 1 minute"
-	case min == 1:
-		return fmt.Sprintf("%d minute", min)
-	case min >= 1 && min <= 44:
-		return fmt.Sprintf("%d minutes", min)
-	case min >= 45 && min <= 89:
+	case minutes == 1:
+		return fmt.Sprintf("%d minute", minutes)
+	case minutes >= 1 && minutes <= 44:
+		return fmt.Sprintf("%d minutes", minutes)
+	case minutes >= 45 && minutes <= 89:
 		return "about 1 hour"
-	case min >= 90 && min <= minutesInDay-1:
+	case minutes >= 90 && minutes <= minutesInDay-1:
 		return fmt.Sprintf("about %d hours", int(round(d.Hours())))
-	case min >= minutesInDay && min <= minutesInDay*2-1:
+	case minutes >= minutesInDay && minutes <= minutesInDay*2-1:
 		return "about 1 day"
-	case min >= 2520 && min <= minutesInMonth-1:
+	case minutes >= 2520 && minutes <= minutesInMonth-1:
 		return fmt.Sprintf("%d days", int(round(d.Hours()/24.0)))
-	case min >= minutesInMonth && min <= minutesInMonth*2-1:
+	case minutes >= minutesInMonth && minutes <= minutesInMonth*2-1:
 		return "about 1 month"
-	case min >= minutesInMonth*2 && min <= minutesInYear-1:
+	case minutes >= minutesInMonth*2 && minutes <= minutesInYear-1:
 		return fmt.Sprintf("%d months", int(round(d.Hours()/24.0/30.0)))
-	case min >= minutesInYear && min <= minutesInYear+3*minutesInMonth-1:
+	case minutes >= minutesInYear && minutes <= minutesInYear+3*minutesInMonth-1:
 		return "about 1 year"
-	case min >= minutesInYear+3*minutesInMonth-1 && min <= minutesInYear+9*minutesInMonth-1:
+	case minutes >= minutesInYear+3*minutesInMonth-1 && minutes <= minutesInYear+9*minutesInMonth-1:
 		return "over 1 year"
-	case min >= minutesInYear+9*minutesInMonth && min <= minutesInYear*2-1:
+	case minutes >= minutesInYear+9*minutesInMonth && minutes <= minutesInYear*2-1:
 		return "almost 2 years"
 	}
 
