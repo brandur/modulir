@@ -1,6 +1,6 @@
 module github.com/brandur/modulir
 
-go 1.18
+go 1.24
 
 require (
 	github.com/fsnotify/fsnotify v1.5.4

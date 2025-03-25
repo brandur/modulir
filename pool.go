@@ -225,7 +225,7 @@ func (p *Pool) StartRound(roundNum int) {
 	}()
 
 	// Worker Goroutines
-	for i := 0; i < p.concurrency; i++ {
+	for i := range p.concurrency {
 		workerNum := i
 		go func() {
 			p.workForRound(workerNum)
