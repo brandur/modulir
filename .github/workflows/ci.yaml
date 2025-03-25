@@ -11,6 +11,8 @@ env:
 on:
   pull_request:
   push:
+    branches:
+      - master
   schedule:
     # ever day at 8 AM
     - cron: "0 8 * * *"
