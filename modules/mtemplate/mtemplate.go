@@ -191,7 +191,19 @@ func DownloadedImage(ctx context.Context, slug, imageURL string, width int) stri
 	container := v.(*DownloadedImageContextContainer)
 	container.Images = append(container.Images, &DownloadedImageInfo{slug, u, width, ""})
 
-	return slug + strings.ToLower(filepath.Ext(u.Path))
+	// This isn't great because the target extension is defined in the caller
+	// project (sorg) so it'd be better if this was also defined there. Doing so
+	// will need some refactoring though.
+	//
+	// We don't use HEIC because it's not web friendly. At some I made the
+	// decision to convert HEICs to WebPs, so I just left it like this, but this
+	// could just as plausibly by JPG as well.
+	ext := strings.ToLower(filepath.Ext(u.Path))
+	if ext == ".heic" {
+		ext = ".webp"
+	}
+
+	return slug + ext
 }
 
 // Figure wraps a number of images into a figure and assigns them a caption as
